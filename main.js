@@ -28,6 +28,20 @@ composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === "e" || event.key === "E") {
+      const menu = document.querySelector('.menu');
+      if (menu.classList.contains('menu-visible')) {
+        menu.classList.remove('menu-visible');
+        menu.classList.add('menu-hidden');
+      } else {
+        menu.classList.remove('menu-hidden');
+        menu.classList.add('menu-visible');
+      }
+    }
+  });
+
 // ------------------- Portal -------------------
 const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
 const portalPlane = new THREE.Plane( new THREE.Vector3( 0, 0, 1 ), 0.0 );
@@ -67,6 +81,7 @@ rightPortal.scale.set( 0.03, 0.03, 0.03 );
 scene.add( rightPortal );
 
 function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
+
 
     leftPortalFrame.visible = false; rightPortalFrame.visible = false; // hide the portal frames from their own rendering
     // set the portal camera position to be reflected about the portal plane
