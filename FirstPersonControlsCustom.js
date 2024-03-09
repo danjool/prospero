@@ -16,6 +16,7 @@ class FirstPersonControlsCustom {
         // API
         this.enabled = true;
         this.movementSpeed = 1.0;
+		this.movementSpeedMultiplier = 1.0;
         this.lookSpeed = 0.005;
         this.lookVertical = true;
         this.autoForward = false;
@@ -103,6 +104,9 @@ class FirstPersonControlsCustom {
 		};
 
 		this.onKeyDown = function ( event ) {
+			console.log('key', event.shiftKey)
+			if ( event.shiftKey ) { this.movementSpeedMultiplier = 4.0; }
+			else { this.movementSpeedMultiplier = 1.0; }
 			switch ( event.code ) {
 				case 'ArrowUp':
 				case 'KeyW': this.moveForward = true; break;
@@ -122,7 +126,8 @@ class FirstPersonControlsCustom {
 		};
 
 		this.onKeyUp = function ( event ) {
-
+			if ( event.shiftKey ) { this.movementSpeedMultiplier = 4.0; }
+			else { this.movementSpeedMultiplier = 1.0; }
 			switch ( event.code ) {
 				case 'ArrowUp':
 				case 'KeyW': this.moveForward = false; break;
@@ -159,7 +164,7 @@ class FirstPersonControlsCustom {
 
 				if ( this.enabled === false ) return;
 
-				const actualMoveSpeed = delta * this.movementSpeed;
+				const actualMoveSpeed = delta * this.movementSpeed * this.movementSpeedMultiplier;
 
 				if ( this.moveForward || ( this.autoForward && ! this.moveBackward ) ) this.object.translateZ( - ( actualMoveSpeed + this.autoSpeedFactor ) );
 				if ( this.moveBackward ) this.object.translateZ( actualMoveSpeed );
