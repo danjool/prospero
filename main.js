@@ -39,10 +39,10 @@ let bottomRightCorner = new THREE.Vector3();
 let topLeftCorner = new THREE.Vector3();
 let reflectedPosition = new THREE.Vector3();
 
-const renderTargetResolution = 512;
+const renderTargetResolution = 1024;
 let leftPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
 let leftPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: leftPortalTexture.texture } ) );
-let leftPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.FrontSide } ) );
+let leftPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } ) );
 leftPortalFrame.scale.set( 1.03, 1.03, 1.03 );
 leftPortalFrame.position.z = -.1;
 leftPortal.add( leftPortalFrame );
@@ -55,7 +55,7 @@ scene.add( leftPortal );
 
 let rightPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
 let rightPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: rightPortalTexture.texture } ) );
-let rightPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.FrontSide } ) );
+let rightPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } ) );
 rightPortalFrame.scale.set( 1.03, 1.03, 1.03 );
 rightPortalFrame.position.z = -.1;
 rightPortal.add( rightPortalFrame );
@@ -173,7 +173,7 @@ function animate() {
     torus.rotation.x += rotSpeed;
     torus.rotation.y += rotSpeed;
 
-    // rightPortal.rotateY(0.01);
+    rightPortal.rotateY(0.01);
 
     etchingShader.uniforms.time.value += 0.05;
     const delta = 0.1;
@@ -210,14 +210,7 @@ function setupGUI() {
 // gui.add(etchingShader.uniforms.dirLight2.value, 'x', -1, 1).name('Light2 X');
 // gui.add(etchingShader.uniforms.dirLight2.value, 'y', -1, 1).name('Light2 Y');
 // gui.add(etchingShader.uniforms.dirLight2.value, 'z', -1, 1).name('Light2 Z');
-gui.add({ autoRotate: false }, 'autoRotate').onChange((value) => {
-    if (value) {
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.3;
-    } else {
-        controls.autoRotate = false;
-    }
-});
+
 // gui.add(etchingShader.uniforms.lightFactor, 'value', 0, 4.0).name('Light Factor');
 // gui.add(etchingShader.uniforms.textureFactor, 'value', 0, 2.).name('Texture Factor')
 // gui.add(etchingShader.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
