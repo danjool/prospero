@@ -120,6 +120,7 @@ let etchingShader = {
     }
 
     void main() {
+        // if (vPositionWorld.z <dd 0.0) discard; // how to 'clip' like with clipping planes, used sometimes with portals
         float lighting = max(dot(vNormalObj, normalize(dirLight1)) * .2, 0.0);
         lighting +=      max(dot(vNormalObj, normalize(dirLight2)) * 0.8, 0.0);
 

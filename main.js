@@ -6,6 +6,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
+import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
 
 import { etchingShader } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
@@ -19,21 +20,74 @@ let controls = new FirstPersonControlsCustom(camera, renderer.domElement);
 let composer = new EffectComposer( renderer );
 composer.addPass( new RenderPass( scene, camera ) ); 
 let gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
-                gtaoPass.blendIntensity = 1.0;
-                gtaoPass.scale = 1.0;
-				gtaoPass.output = GTAOPass.OUTPUT.Default;
-				composer.addPass( gtaoPass ); // note gtao happens after the render pass, so it's using the render pass output including the etching shader, so the gtao pass is adding unfair shading to the etching shader
+gtaoPass.blendIntensity = 1.0;
+gtaoPass.scale = 1.0;
+gtaoPass.output = GTAOPass.OUTPUT.Default;
+composer.addPass( gtaoPass ); // note gtao happens after the render pass, so it's using the render pass output including the etching shader, so the gtao pass is adding unfair shading to the etching shader
 composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// ------------------- Portal -------------------
+const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
+const portalPlane = new THREE.Plane( new THREE.Vector3( 0, 0, 1 ), 0.0 );
+let portalCamera = new THREE.PerspectiveCamera( 45, 1.0, 0.1, 500.0 );
+scene.add( portalCamera );
+let frustumHelper = new THREE.CameraHelper( portalCamera );
+scene.add( frustumHelper );
+let bottomLeftCorner = new THREE.Vector3();
+let bottomRightCorner = new THREE.Vector3();
+let topLeftCorner = new THREE.Vector3();
+let reflectedPosition = new THREE.Vector3();
+
+let leftPortalTexture = new THREE.WebGLRenderTarget( 256, 256 );
+let leftPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: leftPortalTexture.texture } ) );
+leftPortal.position.x = 3;
+leftPortal.position.y = 3;
+leftPortal.position.z = -2;
+leftPortal.scale.set( 0.05, 0.05, 0.05 );
+scene.add( leftPortal );
+
+let rightPortalTexture = new THREE.WebGLRenderTarget( 256, 256 );
+let rightPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: rightPortalTexture.texture } ) );
+rightPortal.position.x = -3;
+rightPortal.position.y = 3;
+rightPortal.position.z = -2;
+rightPortal.scale.set( 0.05, 0.05, 0.05 );
+scene.add( rightPortal );
+
+function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
+
+    // set the portal camera position to be reflected about the portal plane
+    thisPortalMesh.worldToLocal( reflectedPosition.copy( camera.position ) );
+    reflectedPosition.x *= - 1.0; reflectedPosition.z *= - 1.0;
+    otherPortalMesh.localToWorld( reflectedPosition );
+    portalCamera.position.copy( reflectedPosition );
+
+    // grab the corners of the other portal
+    // - note: the portal is viewed backwards; flip the left/right coordinates
+    otherPortalMesh.localToWorld( bottomLeftCorner.set( 50.05, - 50.05, 0.0 ) );
+    otherPortalMesh.localToWorld( bottomRightCorner.set( - 50.05, - 50.05, 0.0 ) );
+    otherPortalMesh.localToWorld( topLeftCorner.set( 50.05, 50.05, 0.0 ) );
+    // set the projection matrix to encompass the portal's frame
+    CameraUtils.frameCorners( portalCamera, bottomLeftCorner, bottomRightCorner, topLeftCorner, false );
+
+    // render the portal
+    thisPortalTexture.texture.colorSpace = renderer.outputColorSpace;
+    renderer.setRenderTarget( thisPortalTexture );
+    renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+    if ( renderer.autoClear === false ) renderer.clear();
+    thisPortalMesh.visible = false; // hide this portal from its own rendering
+    renderer.render( scene, portalCamera );
+    thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
+
+}
+
+// ------------------- Assets -------------------
 const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); // white texture
-
-
-
 let sculptureTexture = new THREE.TextureLoader().load('/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
 const etchingShaderDeepCopy = JSON.parse(JSON.stringify(etchingShader))
-let sculptureMaterial = new THREE.ShaderMaterial(etchingShaderDeepCopy);
+let sculptureMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy, clippingPlanes: [ portalPlane ], clipShadows: true, clipping: true, clipIntersection: true});
 sculptureMaterial.uniforms.posCamVsUV.value = 1.0;
 sculptureMaterial.uniforms.tilingFactor.value = 100.0;
 sculptureMaterial.uniforms.texture1.value = sculptureTexture;
@@ -109,6 +163,22 @@ function animate() {
     etchingShader.uniforms.time.value += 0.05;
     const delta = 0.1;
     controls.update(delta);
+
+    const currentRenderTarget = renderer.getRenderTarget();
+    const currentXrEnabled = renderer.xr.enabled;
+    const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+    renderer.xr.enabled = false; // Avoid camera modification
+    renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+
+    // render the portal effect
+    renderPortal( leftPortal, rightPortal, leftPortalTexture );
+    renderPortal( rightPortal, leftPortal, rightPortalTexture );
+
+    // restore the original rendering properties
+    renderer.xr.enabled = currentXrEnabled;
+    renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+    renderer.setRenderTarget( currentRenderTarget );
+
     composer.render();
 }
 animate();
