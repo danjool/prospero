@@ -2,14 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Three.js Etching Style Shader</title>
-    <style>
-        body { margin: 0; }
-        canvas { display: block; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css"> <!-- Make sure the stylesheet name matches your combined CSS file -->
 </head>
 <body>
+    <div class="menu-background"></div>
+    <div class="menu">
+      <button class="menu-button" onclick="location.href='load-game.html';">Load Game</button>
+      <button class="menu-button" onclick="location.href='new-game.html';">New Game</button>
+      <button class="menu-button" onclick="location.href='how-to-play.html';">How to Play</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "../build/three.module.js",
+                "three/addons/": "./jsm/"
+            }
+        }
+    </script>
     <script type="module" src="/main.js"></script>
 </body>
 </html>
-
