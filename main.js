@@ -29,7 +29,18 @@ document.body.appendChild(renderer.domElement);
 
 const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); // white texture
 
-
+document.addEventListener('keydown', function(event) {
+    if (event.key === "e" || event.key === "E") {
+      const menu = document.querySelector('.menu');
+      if (menu.classList.contains('menu-visible')) {
+        menu.classList.remove('menu-visible');
+        menu.classList.add('menu-hidden');
+      } else {
+        menu.classList.remove('menu-hidden');
+        menu.classList.add('menu-visible');
+      }
+    }
+  });
 
 let sculptureTexture = new THREE.TextureLoader().load('/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
 const etchingShaderDeepCopy = JSON.parse(JSON.stringify(etchingShader))
