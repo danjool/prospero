@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import * as dat from 'dat.gui';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -15,27 +14,8 @@ import { architecturalFeatures } from './architecturalFeatures';
 let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 let renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth, window.innerHeight)
-let fpControls = new FirstPersonControlsCustom(camera, renderer.domElement);
-fpControls.lookSpeed = 0.05;
-fpControls.movementSpeed = 1;
-fpControls.mouseDragOn = true;
-fpControls.mouseLook = false;
-fpControls.noFly = true;
-fpControls.lookVertical = true;
-fpControls.constrainVertical = false; // constrain the vertical look to a specific range
-fpControls.verticalMin = 2.0;
-fpControls.verticalMax = 2.1;
-fpControls.heightSpeed = true;
-fpControls.heightMin = 1.0;
-fpControls.heightMax = 1.0;
-fpControls.constrainHeight = true;
-fpControls.activeLook = true;
 
-// let orbitControls = new OrbitControls(camera, renderer.domElement); // leaving this active with other controls bad
-// controls.target.y = 2.5;
-// controls.enableDamping = true;
-// controls.dampingFactor = 0.1;
-let controls = fpControls
+let controls = new FirstPersonControlsCustom(camera, renderer.domElement);
 let composer = new EffectComposer( renderer );
 composer.addPass( new RenderPass( scene, camera ) ); 
 let gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
@@ -49,62 +29,7 @@ document.body.appendChild(renderer.domElement);
 
 const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); // white texture
 
-let gui = new dat.GUI();
-// gui.add(etchingShader.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
-// gui.add(etchingShader.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'y', -1, 1).name('Light1 Y');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'z', -1, 1).name('Light1 Z');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'x', -1, 1).name('Light2 X');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'y', -1, 1).name('Light2 Y');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'z', -1, 1).name('Light2 Z');
-gui.add({ autoRotate: false }, 'autoRotate').onChange((value) => {
-    if (value) {
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.3;
-    } else {
-        controls.autoRotate = false;
-    }
-});
-// gui.add(etchingShader.uniforms.lightFactor, 'value', 0, 4.0).name('Light Factor');
-// gui.add(etchingShader.uniforms.textureFactor, 'value', 0, 2.).name('Texture Factor')
-// gui.add(etchingShader.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
-// gui.add(etchingShader.uniforms.gamma, 'value', 0, 2.).name('Gamma Factor')
-// gui.add(etchingShader.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
-// gui.add(etchingShader.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
-// gui.add(etchingShader.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
 
-gui.add( gtaoPass, 'output', {
-    'Default': GTAOPass.OUTPUT.Default,
-    'Diffuse': GTAOPass.OUTPUT.Diffuse,
-    'AO Only': GTAOPass.OUTPUT.AO,
-    'AO Only + Denoise': GTAOPass.OUTPUT.Denoise,
-    'Depth': GTAOPass.OUTPUT.Depth,
-    'Normal': GTAOPass.OUTPUT.Normal
-} ).onChange( function ( value ) {
-    console.log(gtaoPass, value)
-    gtaoPass.output = parseInt( value );
-
-} );
-const aoParameters = {
-    radius: 0.25,
-    distanceExponent: 1.,
-    thickness: 1.,
-    scale: 1.,
-    samples: 16,
-    distanceFallOff: 1.,
-    screenSpaceRadius: false,
-};
-gtaoPass.updateGtaoMaterial( aoParameters );
-// gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
-// gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-
-gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
 
 let sculptureTexture = new THREE.TextureLoader().load('/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
 const etchingShaderDeepCopy = JSON.parse(JSON.stringify(etchingShader))
@@ -187,3 +112,63 @@ function animate() {
     composer.render();
 }
 animate();
+
+function setupGUI() {
+    let gui = new dat.GUI();
+// gui.add(etchingShader.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
+// gui.add(etchingShader.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
+// gui.add(etchingShader.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
+// gui.add(etchingShader.uniforms.dirLight1.value, 'y', -1, 1).name('Light1 Y');
+// gui.add(etchingShader.uniforms.dirLight1.value, 'z', -1, 1).name('Light1 Z');
+// gui.add(etchingShader.uniforms.dirLight2.value, 'x', -1, 1).name('Light2 X');
+// gui.add(etchingShader.uniforms.dirLight2.value, 'y', -1, 1).name('Light2 Y');
+// gui.add(etchingShader.uniforms.dirLight2.value, 'z', -1, 1).name('Light2 Z');
+gui.add({ autoRotate: false }, 'autoRotate').onChange((value) => {
+    if (value) {
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.3;
+    } else {
+        controls.autoRotate = false;
+    }
+});
+// gui.add(etchingShader.uniforms.lightFactor, 'value', 0, 4.0).name('Light Factor');
+// gui.add(etchingShader.uniforms.textureFactor, 'value', 0, 2.).name('Texture Factor')
+// gui.add(etchingShader.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
+// gui.add(etchingShader.uniforms.gamma, 'value', 0, 2.).name('Gamma Factor')
+// gui.add(etchingShader.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
+// gui.add(etchingShader.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
+// gui.add(etchingShader.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
+
+gui.add( gtaoPass, 'output', {
+    'Default': GTAOPass.OUTPUT.Default,
+    'Diffuse': GTAOPass.OUTPUT.Diffuse,
+    'AO Only': GTAOPass.OUTPUT.AO,
+    'AO Only + Denoise': GTAOPass.OUTPUT.Denoise,
+    'Depth': GTAOPass.OUTPUT.Depth,
+    'Normal': GTAOPass.OUTPUT.Normal
+} ).onChange( function ( value ) {
+    console.log(gtaoPass, value)
+    gtaoPass.output = parseInt( value );
+
+} );
+const aoParameters = {
+    radius: 0.25,
+    distanceExponent: 1.,
+    thickness: 1.,
+    scale: 1.,
+    samples: 16,
+    distanceFallOff: 1.,
+    screenSpaceRadius: false,
+};
+gtaoPass.updateGtaoMaterial( aoParameters );
+// gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
+// gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+// gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+// gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+// gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+// gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+// gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+
+gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
+}
+setupGUI();
