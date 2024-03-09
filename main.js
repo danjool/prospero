@@ -33,31 +33,42 @@ const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
 const portalPlane = new THREE.Plane( new THREE.Vector3( 0, 0, 1 ), 0.0 );
 let portalCamera = new THREE.PerspectiveCamera( 45, 1.0, 0.1, 500.0 );
 scene.add( portalCamera );
-let frustumHelper = new THREE.CameraHelper( portalCamera );
-scene.add( frustumHelper );
+// let portalCameraHelper = new THREE.CameraHelper( portalCamera ); scene.add( portalCameraHelper );
 let bottomLeftCorner = new THREE.Vector3();
 let bottomRightCorner = new THREE.Vector3();
 let topLeftCorner = new THREE.Vector3();
 let reflectedPosition = new THREE.Vector3();
 
-let leftPortalTexture = new THREE.WebGLRenderTarget( 256, 256 );
+const renderTargetResolution = 512;
+let leftPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
 let leftPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: leftPortalTexture.texture } ) );
-leftPortal.position.x = 3;
-leftPortal.position.y = 3;
-leftPortal.position.z = -2;
-leftPortal.scale.set( 0.05, 0.05, 0.05 );
+let leftPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.FrontSide } ) );
+leftPortalFrame.scale.set( 1.03, 1.03, 1.03 );
+leftPortalFrame.position.z = -.1;
+leftPortal.add( leftPortalFrame );
+leftPortal.position.x = 2;
+leftPortal.position.y = 2;
+leftPortal.position.z = -3;
+leftPortal.rotateY( 0. );
+leftPortal.scale.set( 0.03, 0.03, 0.03 );
 scene.add( leftPortal );
 
-let rightPortalTexture = new THREE.WebGLRenderTarget( 256, 256 );
+let rightPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
 let rightPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: rightPortalTexture.texture } ) );
-rightPortal.position.x = -3;
-rightPortal.position.y = 3;
-rightPortal.position.z = -2;
-rightPortal.scale.set( 0.05, 0.05, 0.05 );
+let rightPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.FrontSide } ) );
+rightPortalFrame.scale.set( 1.03, 1.03, 1.03 );
+rightPortalFrame.position.z = -.1;
+rightPortal.add( rightPortalFrame );
+rightPortal.position.x = -2;
+rightPortal.position.y = 2;
+rightPortal.position.z = -3;
+rightPortal.rotateY( 0. );
+rightPortal.scale.set( 0.03, 0.03, 0.03 );
 scene.add( rightPortal );
 
 function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
 
+    leftPortalFrame.visible = false; rightPortalFrame.visible = false; // hide the portal frames from their own rendering
     // set the portal camera position to be reflected about the portal plane
     thisPortalMesh.worldToLocal( reflectedPosition.copy( camera.position ) );
     reflectedPosition.x *= - 1.0; reflectedPosition.z *= - 1.0;
@@ -80,6 +91,7 @@ function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
     thisPortalMesh.visible = false; // hide this portal from its own rendering
     renderer.render( scene, portalCamera );
     thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
+    leftPortalFrame.visible = true; rightPortalFrame.visible = true; // unhide the portal frames
 
 }
 
@@ -160,6 +172,9 @@ function animate() {
     sphere.rotation.y += rotSpeed;
     torus.rotation.x += rotSpeed;
     torus.rotation.y += rotSpeed;
+
+    // rightPortal.rotateY(0.01);
+
     etchingShader.uniforms.time.value += 0.05;
     const delta = 0.1;
     controls.update(delta);
@@ -178,6 +193,8 @@ function animate() {
     renderer.xr.enabled = currentXrEnabled;
     renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
     renderer.setRenderTarget( currentRenderTarget );
+
+    // portalCameraHelper.update();
 
     composer.render();
 }
