@@ -35,9 +35,11 @@ document.addEventListener('keydown', function(event) {
       if (menu.classList.contains('menu-visible')) {
         menu.classList.remove('menu-visible');
         menu.classList.add('menu-hidden');
+        controls.enabled = true;
       } else {
         menu.classList.remove('menu-hidden');
         menu.classList.add('menu-visible');
+        controls.enabled = false;
       }
     }
   });
