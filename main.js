@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as dat from 'dat.gui';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-// import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls';
+import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -12,12 +12,31 @@ import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
 let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 let renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth, window.innerHeight)
-let controls = new OrbitControls(camera, renderer.domElement);
+let fpControls = new FirstPersonControlsCustom(camera, renderer.domElement);
+fpControls.lookSpeed = 0.05;
+fpControls.movementSpeed = 1;
+fpControls.mouseDragOn = true;
+fpControls.mouseLook = false;
+fpControls.noFly = true;
+fpControls.lookVertical = true;
+fpControls.constrainVertical = false; // constrain the vertical look to a specific range
+fpControls.verticalMin = 2.0;
+fpControls.verticalMax = 2.1;
+fpControls.heightSpeed = true;
+fpControls.heightMin = 1.0;
+fpControls.heightMax = 1.0;
+fpControls.constrainHeight = true;
+fpControls.activeLook = true;
+
+// let orbitControls = new OrbitControls(camera, renderer.domElement); // leaving this active with other controls bad
+let controls = fpControls
 let composer = new EffectComposer( renderer );
 composer.addPass( new RenderPass( scene, camera ) ); 
-// const gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
-// 				gtaoPass.output = GTAOPass.OUTPUT.Denoise;
-// 				composer.addPass( gtaoPass );
+let gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
+                gtaoPass.blendIntensity = 1.0;
+                gtaoPass.scale = 1.0;
+				gtaoPass.output = GTAOPass.OUTPUT.Default;
+				composer.addPass( gtaoPass ); // note gtao happens after the render pass, so it's using the render pass output including the etching shader, so the gtao pass is adding unfair shading to the etching shader
 composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -53,8 +72,8 @@ let etchingShader = {
         gl_Position = projectionMatrix * modelViewPosition;// Transform vertex position to screen space
     }`,
     fragmentShader: `
-    uniform sampler2D tDiffuse;
     uniform sampler2D texture1; 
+    uniform float posCamVsUV;
     uniform vec3 dirLight1; 
     uniform vec3 dirLight2; 
     uniform float tilingFactor; // To control the tiling of the hatching texture
@@ -142,8 +161,6 @@ let etchingShader = {
     }
 
     void main() {
-        vec4 texel = texture2D( tDiffuse, vUv );
-        gl_FragColor = texel;
         float lighting = max(dot(vNormalObj, normalize(dirLight1)) * .2, 0.0);
         lighting +=      max(dot(vNormalObj, normalize(dirLight2)) * 0.8, 0.0);
 
@@ -153,15 +170,19 @@ let etchingShader = {
         float rotation = steppedAngle * angleFactor + theta;
         rotation = 0.;
         vec3 translating = vec3(0.0, 0.0, 0.0);
-        vec3 transformed = blenderMappingTransform(vPositionCamera, rotation, tilingFactor, translating);
-        // transformed = blenderMappingTransform(vec3(vUv.xy, 0.), rotation, tilingFactor, translating); //       TODO: THIS is better for flat surfaces
+        // posCamVsUV is a uniform that drives the shader to use the position in camera space or the uv coordinates to drive the etching lines
+        // blend between the two by using the posCamVsUV uniform
+        vec3 driver = posCamVsUV * vPositionCamera + (1.0 - posCamVsUV) * vec3(vUv.xy, 0.);
+        // we'll also mutiply tilingFactor by the object's distance from the camera to make the tiling factor smaller as the object gets further away
+        // float tilingFactor = tilingFactor / (vPositionCamera.z);
+        vec3 transformed = blenderMappingTransform(driver, rotation, tilingFactor / (vPositionCamera.z), translating);
 
         float ramped = rampFromBlackToWhiteThenBlack( transformed.y) ;
         vec3 rampColor = vec3(ramped, ramped, ramped);
         rampColor = vec3(gammaFunction(rampColor.x, gamma), gammaFunction(rampColor.y, gamma), gammaFunction(rampColor.z, gamma));
     
         vec2 convertedUV = vec2( vUv.x, 1.0 - vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
-        vec4 textureColor = texture2D(texture1, convertedUV);
+        vec4 textureColor = texture2D(texture1, vUv * 10.0); // * 10.0 to tile the texture
         float textureIntensity = textureColor.r * 0.3 + textureColor.g * 0.59 + textureColor.b * 0.11;
 
         // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); gl_FragColor = vec4(fpn, 1.0);
@@ -180,15 +201,14 @@ let etchingShader = {
         // gl_FragColor = vec4(rampColor, 1.0);
         // gl_FragColor = vec4(vPositionCamera.x/vPositionCamera.z, vPositionCamera.y/vPositionCamera.z, 1.0, 1.0);
         // gl_FragColor = vec4(vUv.x, vUv.y, 1.0, 1.0);
+        // gl_FragColor = vec4(convertedUV.xy, 1.0, 1.0);
         gl_FragColor = vec4(color.rgb, 1.0);
     }
     `,
-    // a glsl uniform to drive a 'switch' between a few kinds of rendering modes:
-    // driving what input vector drives the blenderMappingTransform -- the etching lines
 
     uniforms: {
-        tDiffuse: { value: null },
         time: { value: 0.0 },
+        posCamVsUV: { value: 1.0 },
         tilingFactor: { value: 100.0},
         texture1: { value: generatedBlankTexture },
         dirLight1: { value: new THREE.Vector3(.2, -.2, .8) },
@@ -204,12 +224,9 @@ let etchingShader = {
     }
 };
 
-const etchingShaderPass = new ShaderPass(etchingShader);
-// etchingShaderPass.renderToScreen = true;
-// composer.addPass(etchingShaderPass);
-
 let gui = new dat.GUI();
 gui.add(etchingShader.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
+// gui.add(etchingShader.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
 gui.add(etchingShader.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
 gui.add(etchingShader.uniforms.dirLight1.value, 'y', -1, 1).name('Light1 Y');
 gui.add(etchingShader.uniforms.dirLight1.value, 'z', -1, 1).name('Light1 Z');
@@ -232,7 +249,41 @@ gui.add(etchingShader.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
 gui.add(etchingShader.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
 gui.add(etchingShader.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
 
+gui.add( gtaoPass, 'output', {
+    'Default': GTAOPass.OUTPUT.Default,
+    'Diffuse': GTAOPass.OUTPUT.Diffuse,
+    'AO Only': GTAOPass.OUTPUT.AO,
+    'AO Only + Denoise': GTAOPass.OUTPUT.Denoise,
+    'Depth': GTAOPass.OUTPUT.Depth,
+    'Normal': GTAOPass.OUTPUT.Normal
+} ).onChange( function ( value ) {
+    console.log(gtaoPass, value)
+    gtaoPass.output = parseInt( value );
 
+} );
+const aoParameters = {
+    radius: 0.25,
+    distanceExponent: 1.,
+    thickness: 1.,
+    scale: 1.,
+    samples: 16,
+    distanceFallOff: 1.,
+    screenSpaceRadius: false,
+};
+gtaoPass.updateGtaoMaterial( aoParameters );
+gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
+gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+
+gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
+
+let sculptureTexture = new THREE.TextureLoader().load('/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
+let sculptureMaterial = new THREE.ShaderMaterial(etchingShader);
+sculptureMaterial.uniforms.texture1.value = sculptureTexture;
 const loader = new GLTFLoader();
 loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
     scene.add(gltf.scene);
@@ -243,18 +294,23 @@ loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
     const sculptureScale = 2.0;
     gltf.scene.scale.set(sculptureScale, sculptureScale, sculptureScale);
     gltf.scene.rotation.y = Math.PI / 2;
-    let sculptureMaterial = new THREE.ShaderMaterial(etchingShader);
-    // modify sculptureMaterial to have a texture uniform, where the value is the texture in the gltf model
-    let sculptureTexture = new THREE.TextureLoader().load('/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
-    sculptureMaterial.uniforms.texture1.value = sculptureTexture;
     gltf.scene.traverse((child) => {
         if (child.isMesh) {child.material = sculptureMaterial;}
     });
+    handleResize();
 }, undefined, function (error) {console.error('error', error);});
 
-const textureLessEtchingMaterial = new THREE.ShaderMaterial({...etchingShader, uniforms: { ...etchingShader.uniforms, texture1: { value: generatedBlankTexture } } });
+// const textureLessEtchingMaterial = new THREE.ShaderMaterial(etchingShader);
+// use the clone method instead
+const textureLessEtchingMaterial = sculptureMaterial.clone();
+textureLessEtchingMaterial.uniforms.texture1.value = generatedBlankTexture;
+textureLessEtchingMaterial.uniforms.tilingFactor.value = 16.0;
+textureLessEtchingMaterial.uniforms.posCamVsUV.value = 0.0;
 let cube = new THREE.Mesh(new THREE.BoxGeometry(), textureLessEtchingMaterial);
-let sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), textureLessEtchingMaterial);
+const sphereMat = textureLessEtchingMaterial.clone();
+sphereMat.uniforms.tilingFactor.value = 100.0;
+sphereMat.uniforms.posCamVsUV.value = 1.0;
+let sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), sphereMat);
 let torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 32, 100), textureLessEtchingMaterial);
 let groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), textureLessEtchingMaterial);
 groundPlane.rotation.x = -Math.PI / 2;
@@ -271,10 +327,10 @@ scene.add(torus);
 camera.position.z = 3.2;
 camera.position.y = .2;
 camera.position.x = 1.1;
-controls.target.y = 2.5;
+// controls.target.y = 2.5;
 // to get the controls to scroll/zoom smoothly, not in increments, we need to set the damping factor to 0
-controls.enableDamping = true;
-controls.dampingFactor = 0.1;
+// controls.enableDamping = true;
+// controls.dampingFactor = 0.1;
 
 let sunlight = new THREE.DirectionalLight(0xffffff, .3);
 scene.add(sunlight);
@@ -346,6 +402,15 @@ function distributeArchitecturalFeatures(featureCreator, scene, count = 10) {
   }
   distributeArchitecturalFeatures(createPillar, scene, 50);
   distributeArchitecturalFeatures(createStair, scene, 100);
+
+function handleResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    controls.handleResize();
+} 
+window.addEventListener('resize', handleResize);
 
   let t = 0;
 function animate() {
