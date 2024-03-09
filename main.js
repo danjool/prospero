@@ -29,6 +29,9 @@ fpControls.constrainHeight = true;
 fpControls.activeLook = true;
 
 // let orbitControls = new OrbitControls(camera, renderer.domElement); // leaving this active with other controls bad
+// controls.target.y = 2.5;
+// controls.enableDamping = true;
+// controls.dampingFactor = 0.1;
 let controls = fpControls
 let composer = new EffectComposer( renderer );
 composer.addPass( new RenderPass( scene, camera ) ); 
@@ -300,8 +303,6 @@ loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
     handleResize();
 }, undefined, function (error) {console.error('error', error);});
 
-// const textureLessEtchingMaterial = new THREE.ShaderMaterial(etchingShader);
-// use the clone method instead
 const textureLessEtchingMaterial = sculptureMaterial.clone();
 textureLessEtchingMaterial.uniforms.texture1.value = generatedBlankTexture;
 textureLessEtchingMaterial.uniforms.tilingFactor.value = 16.0;
@@ -327,10 +328,6 @@ scene.add(torus);
 camera.position.z = 3.2;
 camera.position.y = .2;
 camera.position.x = 1.1;
-// controls.target.y = 2.5;
-// to get the controls to scroll/zoom smoothly, not in increments, we need to set the damping factor to 0
-// controls.enableDamping = true;
-// controls.dampingFactor = 0.1;
 
 let sunlight = new THREE.DirectionalLight(0xffffff, .3);
 scene.add(sunlight);
@@ -380,7 +377,6 @@ function createStair(stepsCount = 55) {
 }
 
 function distributeArchitecturalFeatures(featureCreator, scene, count = 10) {
-    // const featureGenerators = [createPillar, createStair /* , other feature functions */];
     const scale = 3.;
     const range = 300;
     
@@ -388,13 +384,11 @@ function distributeArchitecturalFeatures(featureCreator, scene, count = 10) {
       const feature = featureCreator();
       feature.scale.set(scale, scale, scale);
       
-      // Random position
       const distance = 150. + Math.random() * range; // Random distance from origin
       const angle = Math.random() * Math.PI * 2; // Random angle for full 360 distribution
       feature.position.x = Math.cos(angle) * distance;
       feature.position.z = Math.sin(angle) * distance;
-      
-      // Random rotation (optional)
+    
       feature.rotation.y = Math.random() * Math.PI * 2;
       
       scene.add(feature);
