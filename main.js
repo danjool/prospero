@@ -29,8 +29,16 @@ composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+let etchingMaterialFolder = null;
 function addEtchingMaterialFolderToGUI(gui, material) {
-    const etchingMaterialFolder = gui.addFolder('Etching Material');
+    if(etchingMaterialFolder){
+        gui.removeFolder(etchingMaterialFolder);
+    }
+    etchingMaterialFolder = gui.addFolder('Etching Material');
+    etchingMaterialFolder.domElement.addEventListener('click', function(event) {
+        console.log("clicked on gui")
+        event.stopPropagation();
+    })
     etchingMaterialFolder.add(material.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
     etchingMaterialFolder.add(material.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
     etchingMaterialFolder.add(material.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
@@ -48,6 +56,7 @@ function addEtchingMaterialFolderToGUI(gui, material) {
     etchingMaterialFolder.add(material.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
     etchingMaterialFolder.add(material.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
     etchingMaterialFolder.add(material.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
+    etchingMaterialFolder.open();
 }
 
 document.addEventListener('keydown', function(event) {
@@ -83,8 +92,8 @@ document.addEventListener('click', function(event) {
             console.log(intersects[0].object);
             // if that tings got a material, add it to the gui
             if (intersects[0].object.material) {
-                let gui = new dat.GUI();
                 addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
+
             }
             
         }
@@ -267,8 +276,9 @@ function animate() {
 }
 animate();
 
+let gui;
 function setupGUI() {
-    let gui = new dat.GUI();
+    gui = new dat.GUI();
 
 gui.add( gtaoPass, 'output', {
     'Default': GTAOPass.OUTPUT.Default,
@@ -292,14 +302,17 @@ const aoParameters = {
     screenSpaceRadius: false,
 };
 gtaoPass.updateGtaoMaterial( aoParameters );
-// gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
-// gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-
+gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
+gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
 gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
+// make it such that clicking on gui doesn't onClick the canvas
+gui.domElement.addEventListener('click', function(event) {
+    event.stopPropagation();
+})
 }
 setupGUI();
