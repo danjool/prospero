@@ -39,6 +39,9 @@ let etchingShader = {
     uniform float time;
     uniform float lightFactor;
     uniform float rampFactor;
+    uniform float noiseFactor;
+    uniform float noiseScale;
+
     uniform float gamma;
     uniform float angleFactor;
     uniform float theta;
@@ -121,40 +124,46 @@ let etchingShader = {
 
     void main() {
         // if (vPositionWorld.z <dd 0.0) discard; // how to 'clip' like with clipping planes, used sometimes with portals
-        float lighting = max(dot(vNormalObj, normalize(dirLight1)) * .2, 0.0);
-        lighting +=      max(dot(vNormalObj, normalize(dirLight2)) * 0.8, 0.0);
+        float lighting = max(dot(vNormalObj, normalize(dirLight1)) * .1, 0.0);
+        lighting +=      max(dot(vNormalObj, normalize(dirLight2)) * 0.2, 0.0);
+
+
 
         float angle = atan2(vNormalCam.y, vNormalCam.x); // Angle between the normal and the x-axis
         float normalizedAngle = (angle + 3.14159) / (2.0 * 3.14159);// Normalize the angle to [0, 1]
         float steppedAngle = floor(normalizedAngle * 4.) / 4.;// Step the angle to create the lines
         float rotation = steppedAngle * angleFactor + theta;
         rotation = 0.;
+
+        vec2 convertedUV = vec2( vUv.x, 1.0 - vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
+
         vec3 translating = vec3(0.0, 0.0, 0.0);
+
+        // float n = noise(vPositionCamera.xy*100.0);
+        float n = noise(convertedUV.xy*noiseScale);
+        rotation += n * noiseFactor;
+        // float pn = perlinNoise(vPositionCamera.xy, 10.0, 4, 10.5/vPositionCamera.z);
+        // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); gl_FragColor = vec4(fpn, 1.0);
+
         // posCamVsUV is a uniform that drives the shader to use the position in camera space or the uv coordinates to drive the etching lines
         // blend between the two by using the posCamVsUV uniform
-        vec3 driver = posCamVsUV * vPositionCamera + (1.0 - posCamVsUV) * vec3(vUv.xy, 0.);
-        // we'll also mutiply tilingFactor by the object's distance from the camera to make the tiling factor smaller as the object gets further away
-        // float tilingFactor = tilingFactor / (vPositionCamera.z);
-        vec3 transformed = blenderMappingTransform(driver, rotation, tilingFactor / (vPositionCamera.z), translating);
+        vec3 driver = posCamVsUV * vPositionCamera + (1.0 - posCamVsUV) * vec3(convertedUV.xy, 0.);
+
+        vec3 transformed = blenderMappingTransform(driver, rotation, tilingFactor / (vPositionCamera.z), translating + driver);
 
         float ramped = rampFromBlackToWhiteThenBlack( transformed.y) ;
         vec3 rampColor = vec3(ramped, ramped, ramped);
         rampColor = vec3(gammaFunction(rampColor.x, gamma), gammaFunction(rampColor.y, gamma), gammaFunction(rampColor.z, gamma));
     
-        vec2 convertedUV = vec2( vUv.x, 1.0 - vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
-        vec4 textureColor = texture2D(texture1, vUv * 10.0); // * 10.0 to tile the texture
-        float textureIntensity = textureColor.r * 0.3 + textureColor.g * 0.59 + textureColor.b * 0.11;
-
-        // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); gl_FragColor = vec4(fpn, 1.0);
-        // float n = perlinNoise(vPositionCamera.xy, 10.0, 4, 10.5/vPositionCamera.z);gl_FragColor = vec4(n, n, n, 1.0);
+        vec4 textureColor = texture2D(texture1, convertedUV);
+        float textureIntensity = 0. + ( textureColor.r * 0.3 + textureColor.g * 0.59 + textureColor.b * 0.11 ) ;
 
         //gl_FragColor = vec4(hash3(.000001*vPositionCamera.xyz), 1.0);
     
-        vec3 color = ( lightFactor * lighting ) - rampFactor * rampColor - textureFactor * textureIntensity;
+        vec3 color = ( lightFactor * lighting ) - rampFactor * rampColor * (textureFactor * textureIntensity);
 
         // uncomment these to visualize the different components of the shader
         // gl_FragColor = vec4( steppedAngle, steppedAngle, steppedAngle, 1.0);
-        // gl_FragColor = vec4(textureColor.rgb, 1.0);
         // gl_FragColor = vec4(lighting, lighting, lighting, 1.0);
         // gl_FragColor = vec4(vNormalObj, 1.0);
         // gl_FragColor = vec4(vNormalCam.x, vNormalCam.y, vNormalCam.z, 1.0);
@@ -162,6 +171,8 @@ let etchingShader = {
         // gl_FragColor = vec4(vPositionCamera.x/vPositionCamera.z, vPositionCamera.y/vPositionCamera.z, 1.0, 1.0);
         // gl_FragColor = vec4(vUv.x, vUv.y, 1.0, 1.0);
         // gl_FragColor = vec4(convertedUV.xy, 1.0, 1.0);
+        // gl_FragColor = vec4(textureColor.rgb, 1.0);
+        // gl_FragColor = vec4(vec3(n,n,n), 1.0);
         gl_FragColor = vec4(color.rgb, 1.0);
     }
     `,
@@ -171,11 +182,13 @@ let etchingShader = {
         posCamVsUV: { value: 1.0 },
         tilingFactor: { value: 100.0},
         texture1: { value: null },
-        dirLight1: { value: new Vector3(.2, -.2, .8) },
-        dirLight2: { value: new Vector3(-.4, .2, .1) },
+        dirLight1: { value: new Vector3(.2, -.6, .8) },
+        dirLight2: { value: new Vector3(-.8, .2, .1) },
         lightFactor: { value: 3.0 },
         textureFactor: { value: 0.5 },
         rampFactor: { value: 0.9 },
+        noiseFactor: { value: .002 },
+        noiseScale: { value: 500.0 },
         gamma: { value: 1.53 },
         angleFactor: { value: 0.0 },
         theta: { value: 0.0 },
@@ -184,4 +197,11 @@ let etchingShader = {
     }
 };
 
-export { etchingShader };
+function updateEtchingShaderUniformsOfMaterial(material, newUniforms) {
+    for (const [key, value] of Object.entries(newUniforms)) {
+        material.uniforms[key].value = value;
+    }
+    material.needsUpdate = true;
+}
+
+export { etchingShader, updateEtchingShaderUniformsOfMaterial };

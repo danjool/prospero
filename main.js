@@ -8,7 +8,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
 import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
 
-import { etchingShader } from '/etchingShader.js';
+import { etchingShader, updateEtchingShaderUniformsOfMaterial } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
 import { architecturalFeatures } from './architecturalFeatures';
 
@@ -29,10 +29,30 @@ composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+function addEtchingMaterialFolderToGUI(gui, material) {
+    const etchingMaterialFolder = gui.addFolder('Etching Material');
+    etchingMaterialFolder.add(material.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
+    etchingMaterialFolder.add(material.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
+    etchingMaterialFolder.add(material.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
+    etchingMaterialFolder.add(material.uniforms.dirLight1.value, 'y', -1, 1).name('Light1 Y');
+    etchingMaterialFolder.add(material.uniforms.dirLight1.value, 'z', -1, 1).name('Light1 Z');
+    etchingMaterialFolder.add(material.uniforms.dirLight2.value, 'x', -1, 1).name('Light2 X');
+    etchingMaterialFolder.add(material.uniforms.dirLight2.value, 'y', -1, 1).name('Light2 Y');
+    etchingMaterialFolder.add(material.uniforms.dirLight2.value, 'z', -1, 1).name('Light2 Z');
+    etchingMaterialFolder.add(material.uniforms.lightFactor, 'value', 0, 4.0).name('Light Factor');
+    etchingMaterialFolder.add(material.uniforms.textureFactor, 'value', 0, 2.).name('Texture Factor')
+    etchingMaterialFolder.add(material.uniforms.noiseFactor, 'value', 0, 2.).name('Noise Factor')
+    etchingMaterialFolder.add(material.uniforms.noiseScale, 'value', 0, 1000.).name('Noise Scale')
+    etchingMaterialFolder.add(material.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
+    etchingMaterialFolder.add(material.uniforms.gamma, 'value', 0, 2.).name('Gamma Factor')
+    etchingMaterialFolder.add(material.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
+    etchingMaterialFolder.add(material.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
+    etchingMaterialFolder.add(material.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
+}
 
 document.addEventListener('keydown', function(event) {
     if (event.key === "e" || event.key === "E") {
-      const menu = document.querySelector('.menu');
+        const menu = document.querySelector('.menu');
       if (menu.classList.contains('menu-visible')) {
         menu.classList.remove('menu-visible');
         menu.classList.add('menu-hidden');
@@ -47,6 +67,29 @@ document.addEventListener('keydown', function(event) {
         controls.enabled = !controls.enabled;        
     } //space
   });
+document.addEventListener('click', function(event) {
+    const menu = document.querySelector('.menu');
+    if(menu.classList.contains('menu-visible')){
+        // menu stuff??
+    } else {
+        // raycasting stuff
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        let intersects = raycaster.intersectObjects(scene.children, true);
+        if (intersects.length > 0) {
+            console.log(intersects[0].object);
+            // if that tings got a material, add it to the gui
+            if (intersects[0].object.material) {
+                let gui = new dat.GUI();
+                addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
+            }
+            
+        }
+    }
+})
 
 // ------------------- Portal -------------------
 const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
@@ -118,13 +161,16 @@ function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
 
 // ------------------- Assets -------------------
 const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); // white texture
-let sculptureTexture = new THREE.TextureLoader().load('/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
+let sculptureTexture = new THREE.TextureLoader().load('/public/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
 const etchingShaderDeepCopy = JSON.parse(JSON.stringify(etchingShader))
-let sculptureMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy, clippingPlanes: [ portalPlane ], clipShadows: true, clipping: true, clipIntersection: true});
-sculptureMaterial.uniforms.posCamVsUV.value = 1.0;
-sculptureMaterial.uniforms.tilingFactor.value = 100.0;
-sculptureMaterial.uniforms.texture1.value = sculptureTexture;
-console.log(sculptureMaterial)
+let sculptureMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy,
+    uniforms: {
+        ...etchingShaderDeepCopy.uniforms,
+        texture1: { value: sculptureTexture },
+        tilingFactor: { value: 100.0 },
+        posCamVsUV: { value: 1.0 },
+    }
+});
 const loader = new GLTFLoader();
 loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
     scene.add(gltf.scene);
@@ -165,9 +211,9 @@ scene.add(cube);
 scene.add(sphere);
 scene.add(torus);
 
-camera.position.z = 3.2;
-camera.position.y = .2;
-camera.position.x = 1.1;
+camera.position.z = 0.8;
+camera.position.y = 1.0;
+camera.position.x = 0.1;
 
 let sunlight = new THREE.DirectionalLight(0xffffff, .3);
 scene.add(sunlight);
@@ -223,22 +269,6 @@ animate();
 
 function setupGUI() {
     let gui = new dat.GUI();
-// gui.add(etchingShader.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
-// gui.add(etchingShader.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'y', -1, 1).name('Light1 Y');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'z', -1, 1).name('Light1 Z');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'x', -1, 1).name('Light2 X');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'y', -1, 1).name('Light2 Y');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'z', -1, 1).name('Light2 Z');
-
-// gui.add(etchingShader.uniforms.lightFactor, 'value', 0, 4.0).name('Light Factor');
-// gui.add(etchingShader.uniforms.textureFactor, 'value', 0, 2.).name('Texture Factor')
-// gui.add(etchingShader.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
-// gui.add(etchingShader.uniforms.gamma, 'value', 0, 2.).name('Gamma Factor')
-// gui.add(etchingShader.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
-// gui.add(etchingShader.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
-// gui.add(etchingShader.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
 
 gui.add( gtaoPass, 'output', {
     'Default': GTAOPass.OUTPUT.Default,

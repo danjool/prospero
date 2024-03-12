@@ -15,8 +15,8 @@ class FirstPersonControlsCustom {
         this.domElement = domElement;
         // API
         this.enabled = true;
-        this.movementSpeed = 1.0;
-		this.movementSpeedMultiplier = 1.0;
+        this.movementSpeed = .12;
+		this.movementSpeedMultiplier = 40.0;
         this.lookSpeed = 0.05;
         this.lookVertical = true;
         this.autoForward = false;
