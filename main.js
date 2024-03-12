@@ -11,23 +11,38 @@ import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
 import { etchingShader, updateEtchingShaderUniformsOfMaterial } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
 import { architecturalFeatures } from './architecturalFeatures';
+import { createLibraryScene } from './libaryScene';
 
-let scene = new THREE.Scene();
+// THREE.LoadingManager
+
+let devScene = new THREE.Scene();
+let scene = devScene;
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 let renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth, window.innerHeight)
 
 let controls = new FirstPersonControlsCustom(camera, renderer.domElement);
 controls.enabled = false;
 let composer = new EffectComposer( renderer );
-composer.addPass( new RenderPass( scene, camera ) ); 
-let gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
+let renderPass =  new RenderPass( devScene, camera )
+composer.addPass( renderPass ); 
+let gtaoPass = new GTAOPass( devScene, camera, window.innerWidth, window.innerHeight);
 gtaoPass.blendIntensity = 1.0;
 gtaoPass.scale = 1.0;
 gtaoPass.output = GTAOPass.OUTPUT.Default;
-composer.addPass( gtaoPass ); // note gtao happens after the render pass, so it's using the render pass output including the etching shader, so the gtao pass is adding unfair shading to the etching shader
+// composer.addPass( gtaoPass ); // note gtao happens after the render pass, so it's using the render pass output including the etching shader, so the gtao pass is adding unfair shading to the etching shader
 composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+let libraryScene = createLibraryScene();    
+
+function switchActiveScene(toScene) {
+    scene = toScene;
+    renderPass.scene = toScene;
+    gtaoPass.scene = toScene;
+    toScene.add( camera );
+
+}
 
 let etchingMaterialFolder = null;
 function addEtchingMaterialFolderToGUI(gui, material) {
@@ -36,7 +51,6 @@ function addEtchingMaterialFolderToGUI(gui, material) {
     }
     etchingMaterialFolder = gui.addFolder('Etching Material');
     etchingMaterialFolder.domElement.addEventListener('click', function(event) {
-        console.log("clicked on gui")
         event.stopPropagation();
     })
     etchingMaterialFolder.add(material.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
@@ -75,6 +89,13 @@ document.addEventListener('keydown', function(event) {
     if(event.key === " "){
         controls.enabled = !controls.enabled;        
     } //space
+    if(event.key === "1" ){
+        // let's load a new scene from a gltf file
+        switchActiveScene(libraryScene);
+    }
+    if(event.key === "2" ){
+        switchActiveScene(devScene);
+    }
   });
 document.addEventListener('click', function(event) {
     const menu = document.querySelector('.menu');
@@ -89,7 +110,7 @@ document.addEventListener('click', function(event) {
         raycaster.setFromCamera(mouse, camera);
         let intersects = raycaster.intersectObjects(scene.children, true);
         if (intersects.length > 0) {
-            console.log(intersects[0].object);
+            console.log('mouse ray interstected', intersects[0].object);
             // if that tings got a material, add it to the gui
             if (intersects[0].object.material) {
                 addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
@@ -104,7 +125,7 @@ document.addEventListener('click', function(event) {
 const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
 const portalPlane = new THREE.Plane( new THREE.Vector3( 0, 0, 1 ), 0.0 );
 let portalCamera = new THREE.PerspectiveCamera( 45, 1.0, 0.1, 500.0 );
-scene.add( portalCamera );
+devScene.add( portalCamera );
 // let portalCameraHelper = new THREE.CameraHelper( portalCamera ); scene.add( portalCameraHelper );
 let bottomLeftCorner = new THREE.Vector3();
 let bottomRightCorner = new THREE.Vector3();
@@ -123,7 +144,7 @@ leftPortal.position.y = 2;
 leftPortal.position.z = -3;
 leftPortal.rotateY( 0. );
 leftPortal.scale.set( 0.03, 0.03, 0.03 );
-scene.add( leftPortal );
+devScene.add( leftPortal );
 
 let rightPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
 let rightPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: rightPortalTexture.texture } ) );
@@ -136,10 +157,9 @@ rightPortal.position.y = 2;
 rightPortal.position.z = -3;
 rightPortal.rotateY( 0. );
 rightPortal.scale.set( 0.03, 0.03, 0.03 );
-scene.add( rightPortal );
+devScene.add( rightPortal );
 
 function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
-
 
     leftPortalFrame.visible = false; rightPortalFrame.visible = false; // hide the portal frames from their own rendering
     // set the portal camera position to be reflected about the portal plane
@@ -162,7 +182,7 @@ function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
     renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
     if ( renderer.autoClear === false ) renderer.clear();
     thisPortalMesh.visible = false; // hide this portal from its own rendering
-    renderer.render( scene, portalCamera );
+    renderer.render( devScene, portalCamera );
     thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
     leftPortalFrame.visible = true; rightPortalFrame.visible = true; // unhide the portal frames
 
@@ -182,7 +202,7 @@ let sculptureMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy,
 });
 const loader = new GLTFLoader();
 loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
-    scene.add(gltf.scene);
+    devScene.add(gltf.scene);
     gltf.scene.traverse((child) => {
         // if (child.isMesh) {child.material = new THREE.MeshBasicMaterial({ map: child.material.map });}
         if (child.isObject3D) {child.position.set(0, 0, 0);}
@@ -196,7 +216,6 @@ loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
     handleResize();
 }, undefined, function (error) {console.error('error', error);});
 
-// const textureLessEtchingMaterial = sculptureMaterial.clone();
 const textureLessEtchingDeepCopy = JSON.parse(JSON.stringify(etchingShader));
 const textureLessEtchingMaterial = new THREE.ShaderMaterial(textureLessEtchingDeepCopy);
 textureLessEtchingMaterial.uniforms.texture1.value = generatedBlankTexture;
@@ -210,25 +229,25 @@ let sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), sphereMat);
 let torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 32, 100), textureLessEtchingMaterial);
 let groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), textureLessEtchingMaterial);
 groundPlane.rotation.x = -Math.PI / 2;
-scene.add(groundPlane);
+devScene.add(groundPlane);
 
 cube.position.x = -3
 torus.position.x = 3
 sphere.position.y = 5
 
-scene.add(cube);
-scene.add(sphere);
-scene.add(torus);
+devScene.add(cube);
+devScene.add(sphere);
+devScene.add(torus);
 
 camera.position.z = 0.8;
 camera.position.y = 1.0;
 camera.position.x = 0.1;
 
 let sunlight = new THREE.DirectionalLight(0xffffff, .3);
-scene.add(sunlight);
+devScene.add(sunlight);
 renderer.setClearColor(0x032288, 1);
 
-architecturalFeatures(scene);
+architecturalFeatures(devScene);
 
 function handleResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -279,6 +298,7 @@ animate();
 let gui;
 function setupGUI() {
     gui = new dat.GUI();
+    gui.hide();
 
 gui.add( gtaoPass, 'output', {
     'Default': GTAOPass.OUTPUT.Default,
@@ -288,7 +308,6 @@ gui.add( gtaoPass, 'output', {
     'Depth': GTAOPass.OUTPUT.Depth,
     'Normal': GTAOPass.OUTPUT.Normal
 } ).onChange( function ( value ) {
-    console.log(gtaoPass, value)
     gtaoPass.output = parseInt( value );
 
 } );
