@@ -93,7 +93,43 @@ function createLibraryScene() {
           // scene.add(oldShelves);
         }, undefined, function (error) {console.error('error', error);});
       }
-    loadOldShelves(scene);
+    loadOldShelves(scene).then(() => {
+      console.log('loaded old shelves')
+      // load books after old shelves from gltf 'shabby_books'
+      // loop through 001 to 007 to load the books ObjectXXX_mtl_baseColor.jpeg
+      let booksTextures = [];
+      for (let i = 1; i < 8; i++) {
+        booksTextures.push(new THREE.TextureLoader().load(`/shabby_books/textures/Object00${i}_mtl_baseColor.jpeg`));
+      }
+      // new THREE.TextureLoader().load('/shabby_books/textures/Object001_mtl_baseColor.jpeg');
+      const etchingShaderDeepCopy = JSON.parse(JSON.stringify(etchingShader))
+        let booksEtchingMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy,
+          uniforms: {
+            ...etchingShaderDeepCopy.uniforms,
+            texture1: { value: booksTextures[1] },
+            tilingFactor: { value: 90.0 },
+            textureFactor: { value: 1.0 },  
+            posCamVsUV: { value: 1.0 }, // 1.0 is vPositionCamera, 0.0 is vUv
+            noiseScale: { value: 0.5 },
+            noiseFactor: { value: 0.5 },
+          }
+        });
+      const loader = new GLTFLoader();
+      loader.load( '/shabby_books/scene.gltf', function ( gltf ) {
+        const books = gltf.scene;
+        books.scale.set( .1, .1, .1 );
+        books.position.set( 0, .5, 0 );
+        books.rotation.y = Math.PI;
+        books.traverse( function ( child ) {
+          if ( child.isMesh ) {
+            child.material = booksEtchingMaterial
+          }
+        } );
+        console.log('books bounding box', new THREE.Box3().setFromObject(books).getSize(new THREE.Vector3()));
+        console.log('books', books)
+        scene.add(books);
+      }, undefined, function (error) {console.error('error', error);});
+    });
     
     scene.fog = new THREE.Fog(0x000000, 0.015, 100);
     scene.background = new THREE.Color(0x000000);
