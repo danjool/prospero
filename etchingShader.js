@@ -143,7 +143,7 @@ let etchingShader = {
         float n = noise(convertedUV.xy*noiseScale);
         rotation += n * noiseFactor;
         // float pn = perlinNoise(vPositionCamera.xy, 10.0, 4, 10.5/vPositionCamera.z);
-        // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); gl_FragColor = vec4(fpn, 1.0);
+        // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); 
 
         // posCamVsUV is a uniform that drives the shader to use the position in camera space or the uv coordinates to drive the etching lines
         // blend between the two by using the posCamVsUV uniform
@@ -173,6 +173,7 @@ let etchingShader = {
         // gl_FragColor = vec4(convertedUV.xy, 1.0, 1.0);
         // gl_FragColor = vec4(textureColor.rgb, 1.0);
         // gl_FragColor = vec4(vec3(n,n,n), 1.0);
+        // gl_FragColor = vec4(fpn, 1.0);
         gl_FragColor = vec4(color.rgb, 1.0);
     }
     `,
