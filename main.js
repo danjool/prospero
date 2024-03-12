@@ -279,6 +279,7 @@ animate();
 let gui;
 function setupGUI() {
     gui = new dat.GUI();
+    gui.hide();
 
 gui.add( gtaoPass, 'output', {
     'Default': GTAOPass.OUTPUT.Default,
