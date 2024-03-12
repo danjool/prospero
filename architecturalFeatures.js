@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { etchingShader } from '/etchingShader.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); // white texture
 
@@ -67,9 +69,100 @@ function distributeArchitecturalFeatures(featureCreator, scene, count = 10) {
     }
   }
 
+const randomizeMatrix = function () {
+  const position = new THREE.Vector3();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+  return function ( matrix ) {
+    position.x = Math.random() * 40 - 20;
+    position.y = Math.random() * 40 - 20;
+    position.z = Math.random() * 40 - 20;
+    quaternion.random();
+    scale.x = scale.y = scale.z = Math.random() * 1;
+    matrix.compose( position, quaternion, scale );
+  };
+}
+
+// function makeMerged( geometry ) {
+//   const geometries = [];
+//   const matrix = new THREE.Matrix4()
+//   for ( let i = 0; i < api.count; i ++ ) {
+//     const instanceGeometry = geometry.clone()
+//     instanceGeometry.applyMatrix4( matrix )
+//     geometries.push( instanceGeometry )
+//   }
+//   const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries )
+//   return mergedGeometry;
+// }
+
+function createGeometryBooksInARow(count = 10, width=2, height=.15, depth=.1) {
+  const geometries = [];
+  const matrix = new THREE.Matrix4()
+  for ( let i = 0; i < count; i ++ ) {
+    const w = width + Math.random() * .5;
+    const h = height + Math.random() * .5;
+    const d = depth + Math.random() * .5;
+    const geometry = new THREE.BoxGeometry( w, h, d );
+    // scooch over
+    matrix.makeTranslation( i * w, 0, 0 );
+    geometry.applyMatrix4( matrix )
+    geometries.push( geometry )
+  }
+  const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries )
+  return mergedGeometry;  
+}
+
+function createGeometryBookShelvesWithBooksOnShelves(count = 10, width=2, height=.15, depth=.1) {
+  const geometries = [];
+  const matrix = new THREE.Matrix4()
+  for ( let i = 0; i < count; i ++ ) {
+    // 
+    const geometry = new THREE.BoxGeometry( w, h, d );
+    // scooch over
+    matrix.makeTranslation( i * w, 0, 0 );
+    geometry.applyMatrix4( matrix )
+    geometries.push( geometry )
+  }
+  const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries )
+  return mergedGeometry;  
+}
+
+const material = new THREE.MeshLambertMaterial( { color: 0x00ffff } );
+
+//////////////////////////////////////
+// load the gltf model 'old_shelves'
+async function loadOldShelves(scene) {
+  let oldShelvesTexture = new THREE.TextureLoader().load('/old_shelves/textures/Shelves_material_baseColor.png');
+  const loader = new GLTFLoader();
+  let oldShelves;
+  const etchingShaderDeepCopy = JSON.parse(JSON.stringify(etchingShader))
+  let oldShelvesEtchingMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy,
+    uniforms: {
+      ...etchingShaderDeepCopy.uniforms,
+      texture1: { value: oldShelvesTexture },
+      tilingFactor: { value: 32.0 },
+      posCamVsUV: { value: 1.0 },
+    }
+  });
+  loader.load( '/old_shelves/scene.gltf', function ( gltf ) {
+    oldShelves = gltf.scene;
+    oldShelves.scale.set( .01, .01, .01 );
+    oldShelves.position.set( 0, 0, 0 );
+    oldShelves.rotation.y = Math.PI;
+    const material = new THREE.MeshLambertMaterial( { color: 0x00ffff } );
+    oldShelves.traverse( function ( child ) {
+      if ( child.isMesh ) {
+        child.material = oldShelvesEtchingMaterial;
+      }
+    } );
+    scene.add(oldShelves);
+  }, undefined, function (error) {console.error('error', error);});
+}
+
 function architecturalFeatures(scene) {
-    distributeArchitecturalFeatures(createPillar, scene, 50);
-    distributeArchitecturalFeatures(createStair, scene, 50);
+  distributeArchitecturalFeatures(createPillar, scene, 50);
+  distributeArchitecturalFeatures(createStair, scene, 50);
+  const oldShelves = loadOldShelves(scene);
 }
 
 export { architecturalFeatures };

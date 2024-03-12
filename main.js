@@ -17,6 +17,7 @@ let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHei
 let renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth, window.innerHeight)
 
 let controls = new FirstPersonControlsCustom(camera, renderer.domElement);
+controls.enabled = false;
 let composer = new EffectComposer( renderer );
 composer.addPass( new RenderPass( scene, camera ) ); 
 let gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
@@ -42,6 +43,9 @@ document.addEventListener('keydown', function(event) {
         controls.enabled = false;
       }
     }
+    if(event.key === " "){
+        controls.enabled = !controls.enabled;        
+    } //space
   });
 
 // ------------------- Portal -------------------
@@ -211,7 +215,7 @@ function animate() {
     renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
     renderer.setRenderTarget( currentRenderTarget );
 
-    // portalCameraHelper.update();
+    // portalCameraHelper.update(); // these will be helpful for debugging the portal camera, which probably isn't correct when rotated, but need 2 helpers
 
     composer.render();
 }
