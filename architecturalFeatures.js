@@ -7,7 +7,7 @@ const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 25
 
 let cityMaterial = new THREE.ShaderMaterial(etchingShader);
 cityMaterial.uniforms.texture1.value = generatedBlankTexture;
-cityMaterial.uniforms.tilingFactor.value = 16.0;
+cityMaterial.uniforms.tilingFactor.value = 32.0;
 cityMaterial.uniforms.posCamVsUV.value = 0.0;
 function createPillar() {
     
@@ -83,51 +83,17 @@ const randomizeMatrix = function () {
   };
 }
 
-// function makeMerged( geometry ) {
-//   const geometries = [];
-//   const matrix = new THREE.Matrix4()
-//   for ( let i = 0; i < api.count; i ++ ) {
-//     const instanceGeometry = geometry.clone()
-//     instanceGeometry.applyMatrix4( matrix )
-//     geometries.push( instanceGeometry )
-//   }
-//   const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries )
-//   return mergedGeometry;
-// }
-
-function createGeometryBooksInARow(count = 10, width=2, height=.15, depth=.1) {
+function makeMerged( geometry ) {
   const geometries = [];
   const matrix = new THREE.Matrix4()
-  for ( let i = 0; i < count; i ++ ) {
-    const w = width + Math.random() * .5;
-    const h = height + Math.random() * .5;
-    const d = depth + Math.random() * .5;
-    const geometry = new THREE.BoxGeometry( w, h, d );
-    // scooch over
-    matrix.makeTranslation( i * w, 0, 0 );
-    geometry.applyMatrix4( matrix )
-    geometries.push( geometry )
+  for ( let i = 0; i < api.count; i ++ ) {
+    const instanceGeometry = geometry.clone()
+    instanceGeometry.applyMatrix4( matrix )
+    geometries.push( instanceGeometry )
   }
   const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries )
-  return mergedGeometry;  
+  return mergedGeometry;
 }
-
-function createGeometryBookShelvesWithBooksOnShelves(count = 10, width=2, height=.15, depth=.1) {
-  const geometries = [];
-  const matrix = new THREE.Matrix4()
-  for ( let i = 0; i < count; i ++ ) {
-    // 
-    const geometry = new THREE.BoxGeometry( w, h, d );
-    // scooch over
-    matrix.makeTranslation( i * w, 0, 0 );
-    geometry.applyMatrix4( matrix )
-    geometries.push( geometry )
-  }
-  const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries )
-  return mergedGeometry;  
-}
-
-const material = new THREE.MeshLambertMaterial( { color: 0x00ffff } );
 
 //////////////////////////////////////
 // load the gltf model 'old_shelves'
@@ -140,8 +106,10 @@ async function loadOldShelves(scene) {
     uniforms: {
       ...etchingShaderDeepCopy.uniforms,
       texture1: { value: oldShelvesTexture },
-      tilingFactor: { value: 32.0 },
-      posCamVsUV: { value: 1.0 },
+      tilingFactor: { value: 100.0 },
+      posCamVsUV: { value: 1.0 }, // 1.0 is vPositionCamera, 0.0 is vUv
+      noiseScale: { value: 0.5 },
+      noiseFactor: { value: 0.5 },
     }
   });
   loader.load( '/old_shelves/scene.gltf', function ( gltf ) {
@@ -149,7 +117,6 @@ async function loadOldShelves(scene) {
     oldShelves.scale.set( .01, .01, .01 );
     oldShelves.position.set( 0, 0, 0 );
     oldShelves.rotation.y = Math.PI;
-    const material = new THREE.MeshLambertMaterial( { color: 0x00ffff } );
     oldShelves.traverse( function ( child ) {
       if ( child.isMesh ) {
         child.material = oldShelvesEtchingMaterial;
