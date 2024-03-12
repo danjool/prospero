@@ -156,11 +156,11 @@ let etchingShader = {
         rampColor = vec3(gammaFunction(rampColor.x, gamma), gammaFunction(rampColor.y, gamma), gammaFunction(rampColor.z, gamma));
     
         vec4 textureColor = texture2D(texture1, convertedUV);
-        float textureIntensity = 0. + ( textureColor.r * 0.3 + textureColor.g * 0.59 + textureColor.b * 0.11 ) ;
+        float textureIntensity = 1. - ( textureColor.r * 0.3 + textureColor.g * 0.59 + textureColor.b * 0.11 ) ;
 
         //gl_FragColor = vec4(hash3(.000001*vPositionCamera.xyz), 1.0);
     
-        vec3 color = ( lightFactor * lighting ) - rampFactor * rampColor * (textureFactor * textureIntensity);
+        vec3 color = ( lightFactor * lighting ) - rampFactor * rampColor * ( 1. - textureFactor * textureIntensity );
 
         // uncomment these to visualize the different components of the shader
         // gl_FragColor = vec4( steppedAngle, steppedAngle, steppedAngle, 1.0);
