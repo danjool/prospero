@@ -5,14 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Three.js Etching Style Shader</title>
     <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css"> <!-- Make sure the stylesheet name matches your combined CSS file -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="menu-background"></div>
-    <div class="menu">
-      <button class="menu-button" onclick="location.href='load-game.html';">Load Game</button>
-      <button class="menu-button" onclick="location.href='new-game.html';">New Game</button>
-      <button class="menu-button" onclick="location.href='how-to-play.html';">How to Play</button>
+    <div class="menu-container">
+        <div class="menu">
+            <div class="menu-background"></div>
+            <!-- Added an id to the Play Game button for interaction handling in JavaScript -->
+            <button class="menu-button" id="playGame">Play Game</button>
+            <button class="menu-button" onclick="location.href='pause-game.html';">Pause Game</button>
+            <button class="menu-button" onclick="location.href='how-to-play.html';">How to Play</button>
+        </div>
+        <div class="volume-control">
+            <label for="volumeSlider">Volume:</label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+        </div>
     </div>
 
     <script type="importmap">

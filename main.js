@@ -28,19 +28,50 @@ composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// Initialize the background music but don't play it yet
+let menuMusic = new Audio('/public/menu-music.mp3');
+menuMusic.loop = true; // The music will loop
+menuMusic.preload = 'auto'; // Preload the audio
+menuMusic.volume = 0.5; // Set the initial volume
 
-document.addEventListener('keydown', function(event) {
-    if (event.key === "e" || event.key === "E") {
-      const menu = document.querySelector('.menu');
-      if (menu.classList.contains('menu-visible')) {
-        menu.classList.remove('menu-visible');
-        menu.classList.add('menu-hidden');
-      } else {
-        menu.classList.remove('menu-hidden');
-        menu.classList.add('menu-visible');
-      }
+// Flag to keep track of user interaction with the "Play Game" button
+let canPlayMusic = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+  const playGameButton = document.getElementById('playGame');
+  const menuContainer = document.querySelector('.menu-container');
+
+  playGameButton.addEventListener('click', function() {
+    menuContainer.classList.add('menu-hidden'); // Hide the menu
+    canPlayMusic = true; // Set the flag to true as user has interacted
+    // Here you can initialize your game or handle transitions
+    // and play a different audio if needed for the game starting
+  });
+
+  // Volume control listener
+  document.getElementById('volumeSlider').addEventListener('input', function(event) {
+    if (canPlayMusic) { // Only adjust volume if music play has been enabled
+      menuMusic.volume = event.target.value;
     }
   });
+});
+
+// Toggle the menu with the "E" key
+document.addEventListener('keydown', function(event) {
+  if (event.key === "e" || event.key === "E") {
+    const menuContainer = document.querySelector('.menu-container');
+    if (menuContainer.classList.contains('menu-hidden')) {
+      menuContainer.classList.remove('menu-hidden');
+      // Only play the menu music if the "Play Game" button has been clicked
+      if (canPlayMusic) {
+        menuMusic.play().catch(e => console.error("Error playing audio:", e));
+      }
+    } else {
+      menuContainer.classList.add('menu-hidden');
+      menuMusic.pause();
+    }
+  }
+});
 
 // ------------------- Portal -------------------
 const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
