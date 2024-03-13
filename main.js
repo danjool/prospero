@@ -75,29 +75,58 @@ function addEtchingMaterialFolderToGUI(gui, material) {
     etchingMaterialFolder.open();
 }
 
+// Initialize the background music but don't play it yet
+let menuMusic = new Audio('/public/menu-music.mp3');
+menuMusic.loop = true; // The music will loop
+menuMusic.preload = 'auto'; // Preload the audio
+menuMusic.volume = 0.5; // Set the initial volume
+
+// Flag to keep track of user interaction with the "Play Game" button
+let canPlayMusic = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+  const playGameButton = document.getElementById('playGame');
+  const menuContainer = document.querySelector('.menu-container');
+
+  playGameButton.addEventListener('click', function() {
+    menuContainer.classList.add('menu-hidden'); // Hide the menu
+    canPlayMusic = true; // Set the flag to true as user has interacted
+    // Here you can initialize your game or handle transitions
+    // and play a different audio if needed for the game starting
+  });
+
+  // Volume control listener
+  document.getElementById('volumeSlider').addEventListener('input', function(event) {
+    if (canPlayMusic) { // Only adjust volume if music play has been enabled
+      menuMusic.volume = event.target.value;
+    }
+});
+
+// Toggle the menu with the "E" key
 document.addEventListener('keydown', function(event) {
-    if (event.key === "e" || event.key === "E") {
-        const menu = document.querySelector('.menu');
-      if (menu.classList.contains('menu-visible')) {
-        menu.classList.remove('menu-visible');
-        menu.classList.add('menu-hidden');
-        controls.enabled = true;
-      } else {
-        menu.classList.remove('menu-hidden');
-        menu.classList.add('menu-visible');
-        controls.enabled = false;
-      }
+  if (event.key === "e" || event.key === "E") {
+    const menuContainer = document.querySelector('.menu-container');
+        if (menuContainer.classList.contains('menu-hidden')) {
+            menuContainer.classList.remove('menu-hidden');
+            // Only play the menu music if the "Play Game" button has been clicked
+            if (canPlayMusic) {
+            menuMusic.play().catch(e => console.error("Error playing audio:", e));
+            }
+        } else {
+            menuContainer.classList.add('menu-hidden');
+            menuMusic.pause();
+        }         
     }
     if(event.key === " "){
         controls.enabled = !controls.enabled;        
-    } //space
+    }
     if(event.key === "1" ){
-        // let's load a new scene from a gltf file
         switchActiveScene(libraryScene);
     }
     if(event.key === "2" ){
         switchActiveScene(devScene);
     }
+
     if(event.key === "j" || event.key === "J"){
         stats.dom.style.display = stats.dom.style.display === 'none' ? 'block' : 'none';
     }
@@ -124,6 +153,9 @@ document.addEventListener('keydown', function(event) {
     }
   });
 let transformControls = null;
+
+});
+
 document.addEventListener('click', function(event) {
     const menu = document.querySelector('.menu');
     if(menu.classList.contains('menu-visible')){
@@ -154,6 +186,7 @@ document.addEventListener('click', function(event) {
         }
     }
 })
+});
 
 // ------------------- Portal -------------------
 const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
