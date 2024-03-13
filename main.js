@@ -8,6 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
 import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
 import { etchingShader, updateEtchingShaderUniformsOfMaterial } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
@@ -42,10 +43,10 @@ function switchActiveScene(toScene) {
     renderPass.scene = toScene;
     gtaoPass.scene = toScene;
     toScene.add( camera );
-
 }
 
-let etchingMaterialFolder = null;
+switchActiveScene(libraryScene);
+let etchingMaterialFolder = null; 
 function addEtchingMaterialFolderToGUI(gui, material) {
     if(etchingMaterialFolder){
         gui.removeFolder(etchingMaterialFolder);
@@ -100,7 +101,29 @@ document.addEventListener('keydown', function(event) {
     if(event.key === "j" || event.key === "J"){
         stats.dom.style.display = stats.dom.style.display === 'none' ? 'block' : 'none';
     }
+    if (transformControls) {
+        if(event.key === "t" || event.key === "T"){
+            transformControls.setMode("translate");
+        }
+        if(event.key === "r" || event.key === "R"){
+            transformControls.setMode("rotate");
+        }
+        if(event.key === "s" || event.key === "S"){
+            transformControls.setMode("scale");
+        }
+        // world vs local
+        if(event.key === "w" || event.key === "W"){
+            transformControls.setSpace(transformControls.space === "local" ? "world" : "local");
+            console.log('transformControls space', transformControls.space)
+        }
+        // close transform controls
+        if(event.key === "q" || event.key === "Q"){
+            scene.remove(transformControls);
+            transformControls = null;
+        }
+    }
   });
+let transformControls = null;
 document.addEventListener('click', function(event) {
     const menu = document.querySelector('.menu');
     if(menu.classList.contains('menu-visible')){
@@ -116,10 +139,18 @@ document.addEventListener('click', function(event) {
         if (intersects.length > 0) {
             console.log('mouse ray interstected', intersects[0].object);
             if (intersects[0].object.material) {
-                addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
+                if(intersects[0].object.material.uniforms && gui) addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
+                // addObjectPosRotScaleFolderToGUI(gui, intersects[0].object);
+                // instead turn on transform controls for the object
+                if(transformControls){
+                    devScene.remove(transformControls);
+                }
+                transformControls = new TransformControls(camera, composer.renderer.domElement);
+                transformControls.attach(intersects[0].object);
+                scene.add(transformControls);
+                
 
             }
-            
         }
     }
 })

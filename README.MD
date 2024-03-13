@@ -27,3 +27,6 @@ It will have a link to open the locally hosted server in your browser, and it wi
 
 # QnA
 - Q: Maybe tank controls no camera?
+
+- Q: Load times?
+- A:  Preoptimization.

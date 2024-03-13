@@ -135,7 +135,7 @@ let etchingShader = {
         float rotation = steppedAngle * angleFactor + theta;
         rotation = 0.;
 
-        vec2 convertedUV = vec2( vUv.x, 1.0 - vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
+        vec2 convertedUV = vec2( vUv.x, 1.- vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
 
         vec3 translating = vec3(0.0, 0.0, 0.0);
 
