@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as dat from 'dat.gui';
+import Stats from 'three/examples/jsm/libs/stats.module'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
@@ -7,6 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
 import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
 import { etchingShader, updateEtchingShaderUniformsOfMaterial } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
@@ -41,10 +43,10 @@ function switchActiveScene(toScene) {
     renderPass.scene = toScene;
     gtaoPass.scene = toScene;
     toScene.add( camera );
-
 }
 
-let etchingMaterialFolder = null;
+switchActiveScene(libraryScene);
+let etchingMaterialFolder = null; 
 function addEtchingMaterialFolderToGUI(gui, material) {
     if(etchingMaterialFolder){
         gui.removeFolder(etchingMaterialFolder);
@@ -124,6 +126,34 @@ document.addEventListener('keydown', function(event) {
     if(event.key === "2" ){
         switchActiveScene(devScene);
     }
+
+    if(event.key === "j" || event.key === "J"){
+        stats.dom.style.display = stats.dom.style.display === 'none' ? 'block' : 'none';
+    }
+    if (transformControls) {
+        if(event.key === "t" || event.key === "T"){
+            transformControls.setMode("translate");
+        }
+        if(event.key === "r" || event.key === "R"){
+            transformControls.setMode("rotate");
+        }
+        if(event.key === "s" || event.key === "S"){
+            transformControls.setMode("scale");
+        }
+        // world vs local
+        if(event.key === "w" || event.key === "W"){
+            transformControls.setSpace(transformControls.space === "local" ? "world" : "local");
+            console.log('transformControls space', transformControls.space)
+        }
+        // close transform controls
+        if(event.key === "q" || event.key === "Q"){
+            scene.remove(transformControls);
+            transformControls = null;
+        }
+    }
+  });
+let transformControls = null;
+
 });
 
 document.addEventListener('click', function(event) {
@@ -140,12 +170,19 @@ document.addEventListener('click', function(event) {
         let intersects = raycaster.intersectObjects(scene.children, true);
         if (intersects.length > 0) {
             console.log('mouse ray interstected', intersects[0].object);
-            // if that tings got a material, add it to the gui
             if (intersects[0].object.material) {
-                addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
+                if(intersects[0].object.material.uniforms && gui) addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
+                // addObjectPosRotScaleFolderToGUI(gui, intersects[0].object);
+                // instead turn on transform controls for the object
+                if(transformControls){
+                    devScene.remove(transformControls);
+                }
+                transformControls = new TransformControls(camera, composer.renderer.domElement);
+                transformControls.attach(intersects[0].object);
+                scene.add(transformControls);
+                
 
             }
-            
         }
     }
 })
@@ -288,6 +325,8 @@ function handleResize() {
 } 
 window.addEventListener('resize', handleResize);
 
+const stats = new Stats(); stats.dom.style.display = 'none'
+document.body.appendChild(stats.dom);
 function animate() {
     requestAnimationFrame(animate);
     const rotSpeed = 0.005;
@@ -320,7 +359,7 @@ function animate() {
     renderer.setRenderTarget( currentRenderTarget );
 
     // portalCameraHelper.update(); // these will be helpful for debugging the portal camera, which probably isn't correct when rotated, but need 2 helpers
-
+    stats.update();
     composer.render();
 }
 animate();
@@ -330,38 +369,38 @@ function setupGUI() {
     gui = new dat.GUI();
     gui.hide();
 
-gui.add( gtaoPass, 'output', {
-    'Default': GTAOPass.OUTPUT.Default,
-    'Diffuse': GTAOPass.OUTPUT.Diffuse,
-    'AO Only': GTAOPass.OUTPUT.AO,
-    'AO Only + Denoise': GTAOPass.OUTPUT.Denoise,
-    'Depth': GTAOPass.OUTPUT.Depth,
-    'Normal': GTAOPass.OUTPUT.Normal
-} ).onChange( function ( value ) {
-    gtaoPass.output = parseInt( value );
+    gui.add( gtaoPass, 'output', {
+        'Default': GTAOPass.OUTPUT.Default,
+        'Diffuse': GTAOPass.OUTPUT.Diffuse,
+        'AO Only': GTAOPass.OUTPUT.AO,
+        'AO Only + Denoise': GTAOPass.OUTPUT.Denoise,
+        'Depth': GTAOPass.OUTPUT.Depth,
+        'Normal': GTAOPass.OUTPUT.Normal
+    } ).onChange( function ( value ) {
+        gtaoPass.output = parseInt( value );
 
-} );
-const aoParameters = {
-    radius: 0.25,
-    distanceExponent: 1.,
-    thickness: 1.,
-    scale: 1.,
-    samples: 16,
-    distanceFallOff: 1.,
-    screenSpaceRadius: false,
-};
-gtaoPass.updateGtaoMaterial( aoParameters );
-gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
-gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
-// make it such that clicking on gui doesn't onClick the canvas
-gui.domElement.addEventListener('click', function(event) {
-    event.stopPropagation();
-})
+    } );
+    const aoParameters = {
+        radius: 0.25,
+        distanceExponent: 1.,
+        thickness: 1.,
+        scale: 1.,
+        samples: 16,
+        distanceFallOff: 1.,
+        screenSpaceRadius: false,
+    };
+    gtaoPass.updateGtaoMaterial( aoParameters );
+    gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
+    gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+    gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+    gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+    gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+    gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+    gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+    gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
+    // make it such that clicking on gui doesn't onClick the canvas
+    gui.domElement.addEventListener('click', function(event) {
+        event.stopPropagation();
+    })
 }
 setupGUI();
