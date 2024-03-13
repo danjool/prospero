@@ -96,13 +96,14 @@ function setupBooks(scene, shelves) {
         shelves.add(wholeShelfOfBookes);
 
         const dx = 1.0;
-        const dy = 10.0
+        const dy = 2.0
         const dz = 2.0
         const mult = 1.;
         for (let i = 0; i < 4; i++) { 
             for(let j = 0; j < 2; j++) { 
                 for(let k = 0; k < 5; k++) {
                     const shelvesClone = shelves.clone();
+                    shelvesClone.rotateY(Math.PI/2);
                     shelvesClone.position.set(i * dx, j * dy, k * dz);
                     scene.add(shelvesClone);
                 }
@@ -124,13 +125,7 @@ function setupShelves(scene) {
         const bookScaleMult = 0.008;
         shelves.scale.set(bookScaleMult, bookScaleMult, bookScaleMult);
         shelves.position.set(0, 0, 0);
-        // shelves.rotation.x = Math.PI/2.; // omg default rotation was CORRECT, the last orientation I tried :/ 
-
         setupBooks(scene, shelves);
-
-        // loop through i and k to make a grid of shelves
-        
-        // scene.add(shelves);
     });
 }
 
