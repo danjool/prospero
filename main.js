@@ -10,7 +10,7 @@ import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
 import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-import { etchingShader, updateEtchingShaderUniformsOfMaterial } from '/etchingShader.js';
+import { etchingShader } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
 import { architecturalFeatures } from './architecturalFeatures';
 import { createLibraryScene } from './libaryScene';
@@ -44,8 +44,8 @@ function switchActiveScene(toScene) {
     gtaoPass.scene = toScene;
     toScene.add( camera );
 }
-
 switchActiveScene(libraryScene);
+
 let etchingMaterialFolder = null; 
 function addEtchingMaterialFolderToGUI(gui, material) {
     if(etchingMaterialFolder){
@@ -140,22 +140,18 @@ document.addEventListener('keydown', function(event) {
         if(event.key === "s" || event.key === "S"){
             transformControls.setMode("scale");
         }
-        // world vs local
         if(event.key === "w" || event.key === "W"){
             transformControls.setSpace(transformControls.space === "local" ? "world" : "local");
-            console.log('transformControls space', transformControls.space)
         }
-        // close transform controls
         if(event.key === "q" || event.key === "Q"){
             scene.remove(transformControls);
             transformControls = null;
         }
     }
   });
-let transformControls = null;
-
 });
 
+let transformControls = null;
 document.addEventListener('click', function(event) {
     const menu = document.querySelector('.menu');
     if(menu.classList.contains('menu-visible')){
@@ -169,12 +165,12 @@ document.addEventListener('click', function(event) {
         raycaster.setFromCamera(mouse, camera);
         let intersects = raycaster.intersectObjects(scene.children, true);
         if (intersects.length > 0) {
-            console.log('mouse ray interstected', intersects[0].object);
+            console.log('mouse ray interstected', intersects[0]);
             if (intersects[0].object.material) {
                 if(intersects[0].object.material.uniforms && gui) addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
                 // addObjectPosRotScaleFolderToGUI(gui, intersects[0].object);
                 // instead turn on transform controls for the object
-                if(transformControls){
+                if(!!transformControls){
                     devScene.remove(transformControls);
                 }
                 transformControls = new TransformControls(camera, composer.renderer.domElement);
@@ -398,9 +394,6 @@ function setupGUI() {
     gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
     gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
     gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
-    // make it such that clicking on gui doesn't onClick the canvas
-    gui.domElement.addEventListener('click', function(event) {
-        event.stopPropagation();
-    })
+    gui.domElement.addEventListener('click', function(event) {event.stopPropagation()})
 }
 setupGUI();
