@@ -85,22 +85,22 @@ menuMusic.volume = 0.5; // Set the initial volume
 let canPlayMusic = false;
 
 document.addEventListener('DOMContentLoaded', function() {
-  const playGameButton = document.getElementById('playGame');
-  const menuContainer = document.querySelector('.menu-container');
+    const playGameButton = document.getElementById('playGame');
+    const menuContainer = document.querySelector('.menu-container');
 
-  playGameButton.addEventListener('click', function() {
-    menuContainer.classList.add('menu-hidden'); // Hide the menu
-    canPlayMusic = true; // Set the flag to true as user has interacted
-    // Here you can initialize your game or handle transitions
-    // and play a different audio if needed for the game starting
-  });
+    playGameButton.addEventListener('click', function() {
+        menuContainer.classList.add('menu-hidden'); // Hide the menu
+        canPlayMusic = true; // Set the flag to true as user has interacted
+        // Here you can initialize your game or handle transitions
+        // and play a different audio if needed for the game starting
+    }); 
 
   // Volume control listener
-  document.getElementById('volumeSlider').addEventListener('input', function(event) {
-    if (canPlayMusic) { // Only adjust volume if music play has been enabled
-      menuMusic.volume = event.target.value;
-    }
-});
+    document.getElementById('volumeSlider').addEventListener('input', function(event) {
+        if (canPlayMusic) { // Only adjust volume if music play has been enabled
+        menuMusic.volume = event.target.value;
+        }
+    });
 
 // Toggle the menu with the "E" key
 document.addEventListener('keydown', function(event) {
@@ -186,7 +186,7 @@ document.addEventListener('click', function(event) {
         }
     }
 })
-});
+
 
 // ------------------- Portal -------------------
 const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
