@@ -8,25 +8,70 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
 import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
 
-import { etchingShader } from '/etchingShader.js';
+import { etchingShader, updateEtchingShaderUniformsOfMaterial } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
 import { architecturalFeatures } from './architecturalFeatures';
+import { createLibraryScene } from './libaryScene';
 
-let scene = new THREE.Scene();
+// THREE.LoadingManager
+
+let devScene = new THREE.Scene();
+let scene = devScene;
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 let renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth, window.innerHeight)
 
 let controls = new FirstPersonControlsCustom(camera, renderer.domElement);
+controls.enabled = false;
 let composer = new EffectComposer( renderer );
-composer.addPass( new RenderPass( scene, camera ) ); 
-let gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
+let renderPass =  new RenderPass( devScene, camera )
+composer.addPass( renderPass ); 
+let gtaoPass = new GTAOPass( devScene, camera, window.innerWidth, window.innerHeight);
 gtaoPass.blendIntensity = 1.0;
 gtaoPass.scale = 1.0;
 gtaoPass.output = GTAOPass.OUTPUT.Default;
-composer.addPass( gtaoPass ); // note gtao happens after the render pass, so it's using the render pass output including the etching shader, so the gtao pass is adding unfair shading to the etching shader
+// composer.addPass( gtaoPass ); // note gtao happens after the render pass, so it's using the render pass output including the etching shader, so the gtao pass is adding unfair shading to the etching shader
 composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+let libraryScene = createLibraryScene();    
+
+function switchActiveScene(toScene) {
+    scene = toScene;
+    renderPass.scene = toScene;
+    gtaoPass.scene = toScene;
+    toScene.add( camera );
+
+}
+
+let etchingMaterialFolder = null;
+function addEtchingMaterialFolderToGUI(gui, material) {
+    if(etchingMaterialFolder){
+        gui.removeFolder(etchingMaterialFolder);
+    }
+    etchingMaterialFolder = gui.addFolder('Etching Material');
+    etchingMaterialFolder.domElement.addEventListener('click', function(event) {
+        event.stopPropagation();
+    })
+    etchingMaterialFolder.add(material.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
+    etchingMaterialFolder.add(material.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
+    etchingMaterialFolder.add(material.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
+    etchingMaterialFolder.add(material.uniforms.dirLight1.value, 'y', -1, 1).name('Light1 Y');
+    etchingMaterialFolder.add(material.uniforms.dirLight1.value, 'z', -1, 1).name('Light1 Z');
+    etchingMaterialFolder.add(material.uniforms.dirLight2.value, 'x', -1, 1).name('Light2 X');
+    etchingMaterialFolder.add(material.uniforms.dirLight2.value, 'y', -1, 1).name('Light2 Y');
+    etchingMaterialFolder.add(material.uniforms.dirLight2.value, 'z', -1, 1).name('Light2 Z');
+    etchingMaterialFolder.add(material.uniforms.lightFactor, 'value', 0, 4.0).name('Light Factor');
+    etchingMaterialFolder.add(material.uniforms.textureFactor, 'value', 0, 2.).name('Texture Factor')
+    etchingMaterialFolder.add(material.uniforms.noiseFactor, 'value', 0, 2.).name('Noise Factor')
+    etchingMaterialFolder.add(material.uniforms.noiseScale, 'value', 0, 1000.).name('Noise Scale')
+    etchingMaterialFolder.add(material.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
+    etchingMaterialFolder.add(material.uniforms.gamma, 'value', 0, 2.).name('Gamma Factor')
+    etchingMaterialFolder.add(material.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
+    etchingMaterialFolder.add(material.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
+    etchingMaterialFolder.add(material.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
+    etchingMaterialFolder.open();
+}
 
 // Initialize the background music but don't play it yet
 let menuMusic = new Audio('/public/menu-music.mp3');
@@ -53,41 +98,74 @@ document.addEventListener('DOMContentLoaded', function() {
     if (canPlayMusic) { // Only adjust volume if music play has been enabled
       menuMusic.volume = event.target.value;
     }
-  });
 });
 
 // Toggle the menu with the "E" key
 document.addEventListener('keydown', function(event) {
   if (event.key === "e" || event.key === "E") {
     const menuContainer = document.querySelector('.menu-container');
-    if (menuContainer.classList.contains('menu-hidden')) {
-      menuContainer.classList.remove('menu-hidden');
-      // Only play the menu music if the "Play Game" button has been clicked
-      if (canPlayMusic) {
-        menuMusic.play().catch(e => console.error("Error playing audio:", e));
-      }
-    } else {
-      menuContainer.classList.add('menu-hidden');
-      menuMusic.pause();
+        if (menuContainer.classList.contains('menu-hidden')) {
+            menuContainer.classList.remove('menu-hidden');
+            // Only play the menu music if the "Play Game" button has been clicked
+            if (canPlayMusic) {
+            menuMusic.play().catch(e => console.error("Error playing audio:", e));
+            }
+        } else {
+            menuContainer.classList.add('menu-hidden');
+            menuMusic.pause();
+        }         
     }
-  }
+    if(event.key === " "){
+        controls.enabled = !controls.enabled;        
+    }
+    if(event.key === "1" ){
+        switchActiveScene(libraryScene);
+    }
+    if(event.key === "2" ){
+        switchActiveScene(devScene);
+    }
+});
+
+document.addEventListener('click', function(event) {
+    const menu = document.querySelector('.menu');
+    if(menu.classList.contains('menu-visible')){
+        // menu stuff??
+    } else {
+        // raycasting stuff
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        let intersects = raycaster.intersectObjects(scene.children, true);
+        if (intersects.length > 0) {
+            console.log('mouse ray interstected', intersects[0].object);
+            // if that tings got a material, add it to the gui
+            if (intersects[0].object.material) {
+                addEtchingMaterialFolderToGUI(gui, intersects[0].object.material);
+
+            }
+            
+        }
+    }
+})
 });
 
 // ------------------- Portal -------------------
 const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
 const portalPlane = new THREE.Plane( new THREE.Vector3( 0, 0, 1 ), 0.0 );
 let portalCamera = new THREE.PerspectiveCamera( 45, 1.0, 0.1, 500.0 );
-scene.add( portalCamera );
+devScene.add( portalCamera );
 // let portalCameraHelper = new THREE.CameraHelper( portalCamera ); scene.add( portalCameraHelper );
 let bottomLeftCorner = new THREE.Vector3();
 let bottomRightCorner = new THREE.Vector3();
 let topLeftCorner = new THREE.Vector3();
 let reflectedPosition = new THREE.Vector3();
 
-const renderTargetResolution = 512;
+const renderTargetResolution = 1024;
 let leftPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
 let leftPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: leftPortalTexture.texture } ) );
-let leftPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.FrontSide } ) );
+let leftPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } ) );
 leftPortalFrame.scale.set( 1.03, 1.03, 1.03 );
 leftPortalFrame.position.z = -.1;
 leftPortal.add( leftPortalFrame );
@@ -96,11 +174,11 @@ leftPortal.position.y = 2;
 leftPortal.position.z = -3;
 leftPortal.rotateY( 0. );
 leftPortal.scale.set( 0.03, 0.03, 0.03 );
-scene.add( leftPortal );
+devScene.add( leftPortal );
 
 let rightPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
 let rightPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: rightPortalTexture.texture } ) );
-let rightPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.FrontSide } ) );
+let rightPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } ) );
 rightPortalFrame.scale.set( 1.03, 1.03, 1.03 );
 rightPortalFrame.position.z = -.1;
 rightPortal.add( rightPortalFrame );
@@ -109,10 +187,9 @@ rightPortal.position.y = 2;
 rightPortal.position.z = -3;
 rightPortal.rotateY( 0. );
 rightPortal.scale.set( 0.03, 0.03, 0.03 );
-scene.add( rightPortal );
+devScene.add( rightPortal );
 
 function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
-
 
     leftPortalFrame.visible = false; rightPortalFrame.visible = false; // hide the portal frames from their own rendering
     // set the portal camera position to be reflected about the portal plane
@@ -135,7 +212,7 @@ function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
     renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
     if ( renderer.autoClear === false ) renderer.clear();
     thisPortalMesh.visible = false; // hide this portal from its own rendering
-    renderer.render( scene, portalCamera );
+    renderer.render( devScene, portalCamera );
     thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
     leftPortalFrame.visible = true; rightPortalFrame.visible = true; // unhide the portal frames
 
@@ -143,16 +220,19 @@ function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
 
 // ------------------- Assets -------------------
 const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); // white texture
-let sculptureTexture = new THREE.TextureLoader().load('/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
+let sculptureTexture = new THREE.TextureLoader().load('/public/spirit_of_life_sculpture/Textures/material_0_baseColor.jpeg');
 const etchingShaderDeepCopy = JSON.parse(JSON.stringify(etchingShader))
-let sculptureMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy, clippingPlanes: [ portalPlane ], clipShadows: true, clipping: true, clipIntersection: true});
-sculptureMaterial.uniforms.posCamVsUV.value = 1.0;
-sculptureMaterial.uniforms.tilingFactor.value = 100.0;
-sculptureMaterial.uniforms.texture1.value = sculptureTexture;
-console.log(sculptureMaterial)
+let sculptureMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy,
+    uniforms: {
+        ...etchingShaderDeepCopy.uniforms,
+        texture1: { value: sculptureTexture },
+        tilingFactor: { value: 100.0 },
+        posCamVsUV: { value: 1.0 },
+    }
+});
 const loader = new GLTFLoader();
 loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
-    scene.add(gltf.scene);
+    devScene.add(gltf.scene);
     gltf.scene.traverse((child) => {
         // if (child.isMesh) {child.material = new THREE.MeshBasicMaterial({ map: child.material.map });}
         if (child.isObject3D) {child.position.set(0, 0, 0);}
@@ -166,7 +246,6 @@ loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
     handleResize();
 }, undefined, function (error) {console.error('error', error);});
 
-// const textureLessEtchingMaterial = sculptureMaterial.clone();
 const textureLessEtchingDeepCopy = JSON.parse(JSON.stringify(etchingShader));
 const textureLessEtchingMaterial = new THREE.ShaderMaterial(textureLessEtchingDeepCopy);
 textureLessEtchingMaterial.uniforms.texture1.value = generatedBlankTexture;
@@ -180,25 +259,25 @@ let sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), sphereMat);
 let torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 32, 100), textureLessEtchingMaterial);
 let groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), textureLessEtchingMaterial);
 groundPlane.rotation.x = -Math.PI / 2;
-scene.add(groundPlane);
+devScene.add(groundPlane);
 
 cube.position.x = -3
 torus.position.x = 3
 sphere.position.y = 5
 
-scene.add(cube);
-scene.add(sphere);
-scene.add(torus);
+devScene.add(cube);
+devScene.add(sphere);
+devScene.add(torus);
 
-camera.position.z = 3.2;
-camera.position.y = .2;
-camera.position.x = 1.1;
+camera.position.z = 0.8;
+camera.position.y = 1.0;
+camera.position.x = 0.1;
 
 let sunlight = new THREE.DirectionalLight(0xffffff, .3);
-scene.add(sunlight);
+devScene.add(sunlight);
 renderer.setClearColor(0x032288, 1);
 
-architecturalFeatures(scene);
+architecturalFeatures(devScene);
 
 function handleResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -219,7 +298,7 @@ function animate() {
     torus.rotation.x += rotSpeed;
     torus.rotation.y += rotSpeed;
 
-    // rightPortal.rotateY(0.01);
+    rightPortal.rotateY(0.01);
 
     etchingShader.uniforms.time.value += 0.05;
     const delta = 0.1;
@@ -240,37 +319,16 @@ function animate() {
     renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
     renderer.setRenderTarget( currentRenderTarget );
 
-    // portalCameraHelper.update();
+    // portalCameraHelper.update(); // these will be helpful for debugging the portal camera, which probably isn't correct when rotated, but need 2 helpers
 
     composer.render();
 }
 animate();
 
+let gui;
 function setupGUI() {
-    let gui = new dat.GUI();
-// gui.add(etchingShader.uniforms.tilingFactor, 'value', 0, 300).name('Tiling Factor');
-// gui.add(etchingShader.uniforms.posCamVsUV, 'value', 0, 1).name('PosCamVsUV');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'x', -1, 1).name('Light1 X');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'y', -1, 1).name('Light1 Y');
-// gui.add(etchingShader.uniforms.dirLight1.value, 'z', -1, 1).name('Light1 Z');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'x', -1, 1).name('Light2 X');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'y', -1, 1).name('Light2 Y');
-// gui.add(etchingShader.uniforms.dirLight2.value, 'z', -1, 1).name('Light2 Z');
-gui.add({ autoRotate: false }, 'autoRotate').onChange((value) => {
-    if (value) {
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.3;
-    } else {
-        controls.autoRotate = false;
-    }
-});
-// gui.add(etchingShader.uniforms.lightFactor, 'value', 0, 4.0).name('Light Factor');
-// gui.add(etchingShader.uniforms.textureFactor, 'value', 0, 2.).name('Texture Factor')
-// gui.add(etchingShader.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
-// gui.add(etchingShader.uniforms.gamma, 'value', 0, 2.).name('Gamma Factor')
-// gui.add(etchingShader.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
-// gui.add(etchingShader.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
-// gui.add(etchingShader.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
+    gui = new dat.GUI();
+    gui.hide();
 
 gui.add( gtaoPass, 'output', {
     'Default': GTAOPass.OUTPUT.Default,
@@ -280,7 +338,6 @@ gui.add( gtaoPass, 'output', {
     'Depth': GTAOPass.OUTPUT.Depth,
     'Normal': GTAOPass.OUTPUT.Normal
 } ).onChange( function ( value ) {
-    console.log(gtaoPass, value)
     gtaoPass.output = parseInt( value );
 
 } );
@@ -294,14 +351,17 @@ const aoParameters = {
     screenSpaceRadius: false,
 };
 gtaoPass.updateGtaoMaterial( aoParameters );
-// gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
-// gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-// gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
-
+gui.add( gtaoPass, 'blendIntensity' ).min( 0 ).max( 1 ).step( 0.01 );
+gui.add( aoParameters, 'radius' ).min( 0.01 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'distanceExponent' ).min( 1 ).max( 4 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'thickness' ).min( 0.01 ).max( 10 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'distanceFallOff' ).min( 0 ).max( 1 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
+gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
 gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
+// make it such that clicking on gui doesn't onClick the canvas
+gui.domElement.addEventListener('click', function(event) {
+    event.stopPropagation();
+})
 }
 setupGUI();
