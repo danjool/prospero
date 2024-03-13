@@ -198,11 +198,4 @@ let etchingShader = {
     }
 };
 
-function updateEtchingShaderUniformsOfMaterial(material, newUniforms) {
-    for (const [key, value] of Object.entries(newUniforms)) {
-        material.uniforms[key].value = value;
-    }
-    material.needsUpdate = true;
-}
-
-export { etchingShader, updateEtchingShaderUniformsOfMaterial };
+export { etchingShader };

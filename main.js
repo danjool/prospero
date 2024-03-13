@@ -10,7 +10,7 @@ import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass';
 import * as CameraUtils from 'three/addons/utils/CameraUtils.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-import { etchingShader, updateEtchingShaderUniformsOfMaterial } from '/etchingShader.js';
+import { etchingShader } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
 import { architecturalFeatures } from './architecturalFeatures';
 import { createLibraryScene } from './libaryScene';
@@ -44,8 +44,8 @@ function switchActiveScene(toScene) {
     gtaoPass.scene = toScene;
     toScene.add( camera );
 }
-
 switchActiveScene(libraryScene);
+
 let etchingMaterialFolder = null; 
 function addEtchingMaterialFolderToGUI(gui, material) {
     if(etchingMaterialFolder){
@@ -398,9 +398,6 @@ function setupGUI() {
     gui.add( aoParameters, 'scale' ).min( 0.01 ).max( 2.0 ).step( 0.01 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
     gui.add( aoParameters, 'samples' ).min( 2 ).max( 32 ).step( 1 ).onChange( () => gtaoPass.updateGtaoMaterial( aoParameters ) );
     gui.add(controls, 'deadZone').min(0.).max(1000.).step(0.01).name('Dead Zone');
-    // make it such that clicking on gui doesn't onClick the canvas
-    gui.domElement.addEventListener('click', function(event) {
-        event.stopPropagation();
-    })
+    gui.domElement.addEventListener('click', function(event) {event.stopPropagation()})
 }
 setupGUI();
