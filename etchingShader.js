@@ -135,7 +135,7 @@ let etchingShader = {
         float rotation = steppedAngle * angleFactor + theta;
         rotation = 0.;
 
-        vec2 convertedUV = vec2( vUv.x, 1.0 - vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
+        vec2 convertedUV = vec2( vUv.x, 1.- vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
 
         vec3 translating = vec3(0.0, 0.0, 0.0);
 
@@ -143,7 +143,7 @@ let etchingShader = {
         float n = noise(convertedUV.xy*noiseScale);
         rotation += n * noiseFactor;
         // float pn = perlinNoise(vPositionCamera.xy, 10.0, 4, 10.5/vPositionCamera.z);
-        // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); gl_FragColor = vec4(fpn, 1.0);
+        // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); 
 
         // posCamVsUV is a uniform that drives the shader to use the position in camera space or the uv coordinates to drive the etching lines
         // blend between the two by using the posCamVsUV uniform
@@ -156,11 +156,11 @@ let etchingShader = {
         rampColor = vec3(gammaFunction(rampColor.x, gamma), gammaFunction(rampColor.y, gamma), gammaFunction(rampColor.z, gamma));
     
         vec4 textureColor = texture2D(texture1, convertedUV);
-        float textureIntensity = 0. + ( textureColor.r * 0.3 + textureColor.g * 0.59 + textureColor.b * 0.11 ) ;
+        float textureIntensity = 1. - ( textureColor.r * 0.3 + textureColor.g * 0.59 + textureColor.b * 0.11 ) ;
 
         //gl_FragColor = vec4(hash3(.000001*vPositionCamera.xyz), 1.0);
     
-        vec3 color = ( lightFactor * lighting ) - rampFactor * rampColor * (textureFactor * textureIntensity);
+        vec3 color = ( lightFactor * lighting ) - rampFactor * rampColor * ( 1. - textureFactor * textureIntensity );
 
         // uncomment these to visualize the different components of the shader
         // gl_FragColor = vec4( steppedAngle, steppedAngle, steppedAngle, 1.0);
@@ -173,6 +173,7 @@ let etchingShader = {
         // gl_FragColor = vec4(convertedUV.xy, 1.0, 1.0);
         // gl_FragColor = vec4(textureColor.rgb, 1.0);
         // gl_FragColor = vec4(vec3(n,n,n), 1.0);
+        // gl_FragColor = vec4(fpn, 1.0);
         gl_FragColor = vec4(color.rgb, 1.0);
     }
     `,
@@ -197,11 +198,4 @@ let etchingShader = {
     }
 };
 
-function updateEtchingShaderUniformsOfMaterial(material, newUniforms) {
-    for (const [key, value] of Object.entries(newUniforms)) {
-        material.uniforms[key].value = value;
-    }
-    material.needsUpdate = true;
-}
-
-export { etchingShader, updateEtchingShaderUniformsOfMaterial };
+export { etchingShader };

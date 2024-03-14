@@ -49,18 +49,15 @@ class FirstPersonControlsCustom {
 		let lon = 0;
 		//
 		this.handleResize = function () {
-			console.log('handleResize', this.domElement, this.domElement === document, window.innerWidth / 2, window.innerHeight / 2, this.domElement.offsetWidth / 2, this.domElement.offsetHeight / 2, this.domElement.offsetLeft, this.domElement.offsetTop, this.domElement.clientWidth / 2, this.domElement.clientHeight / 2, this.domElement.scrollWidth / 2, this.domElement.scrollHeight / 2, this.domElement.scrollLeft / 2, this.domElement.scrollTop / 2, this.domElement.scrollWidth / 2, this.domElement.scrollHeight / 2)
 			if ( this.domElement === document ) {
                 this.viewHalfX = window.innerWidth / 2;
 				this.viewHalfY = window.innerHeight / 2;
 			} else {
-				console.log('handleResize2', this.domElement.offsetWidth, this.domElement.offsetHeight, this.domElement.offsetLeft, this.domElement.offsetTop, this.domElement.clientWidth, this.domElement.clientHeight, this.domElement.scrollWidth, this.domElement.scrollHeight, this.domElement.scrollLeft, this.domElement.scrollTop, this.domElement.scrollWidth, this.domElement.scrollHeight)
                 this.viewHalfX = this.domElement.offsetWidth / 2;
 				this.viewHalfY = this.domElement.offsetHeight / 2;
 			}
 			// if(this.deadZone !== 0){
 				this.deadZone = Math.min(this.viewHalfX, this.viewHalfY) * 0.5;
-				console.log('deadZone', this.deadZone)
 			// }
 		};
 
@@ -104,7 +101,6 @@ class FirstPersonControlsCustom {
 		};
 
 		this.onKeyDown = function ( event ) {
-			console.log('key', event.shiftKey)
 			if ( event.shiftKey ) { this.movementSpeedMultiplier = 4.0; }
 			else { this.movementSpeedMultiplier = 1.0; }
 			switch ( event.code ) {
@@ -204,7 +200,6 @@ class FirstPersonControlsCustom {
 					lat = Math.max( - 85, Math.min( 85, lat ) );
 					phi = MathUtils.degToRad( 90 - lat );
 					theta = MathUtils.degToRad( lon );
-					console.log('mouseLook', actualLookSpeed, this.mouseLookX, this.mouseLookY, lon, lat, phi, theta, this.pointerX, this.pointerY, this.deadZone, this.viewHalfX, this.viewHalfY, this.domElement.offsetWidth, this.domElement.offsetHeight, this.domElement.offsetLeft, this.domElement.offsetTop, this.domElement.clientWidth, this.domElement.clientHeight, this.domElement.scrollWidth, this.domElement.scrollHeight, this.domElement.scrollLeft, this.domElement.scrollTop, this.domElement.scrollWidth, this.domElement.scrollHeight)
 				} else {
 
 					const pointDistFromCenter = Math.sqrt( this.pointerX * this.pointerX + this.pointerY * this.pointerY );
