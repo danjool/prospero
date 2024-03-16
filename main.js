@@ -38,6 +38,8 @@ document.body.appendChild(renderer.domElement);
 
 let libraryScene = createLibraryScene();    
 
+
+
 function switchActiveScene(toScene) {
     scene = toScene;
     renderPass.scene = toScene;
@@ -356,6 +358,7 @@ function animate() {
 
     // portalCameraHelper.update(); // these will be helpful for debugging the portal camera, which probably isn't correct when rotated, but need 2 helpers
     stats.update();
+    // console.log(renderer.info.render.calls) 
     composer.render();
 }
 animate();

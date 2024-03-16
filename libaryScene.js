@@ -1,5 +1,5 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { etchingShader } from './etchingShader.js';
+import { etchingShader, etchingShaderInstanced } from './etchingShader.js';
 import * as THREE from 'three';
 
 function loadGLTFAsset(path, material, onLoadCallback) {
@@ -32,14 +32,14 @@ function loadGLTFAsset(path, material, onLoadCallback) {
     });
 }
 
-function createEtchingMaterial(texturePath, uniformsOverrides = {}) {
+function createEtchingMaterial(texturePath, uniformsOverrides = {}, shader=etchingShader) {
     const texture = new THREE.TextureLoader().load(texturePath);
     const uniforms = {
-        ...JSON.parse(JSON.stringify(etchingShader)).uniforms,
+        ...JSON.parse(JSON.stringify(shader)).uniforms,
         texture1: { value: texture },
         ...uniformsOverrides,
     };
-    return new THREE.ShaderMaterial({ ...etchingShader, uniforms });
+    return new THREE.ShaderMaterial({ ...shader, uniforms });
 }
 
 function setupBooks(scene, shelves) {
@@ -112,6 +112,44 @@ function setupBooks(scene, shelves) {
     });
 }
 
+function setupBooksInstancedOnlyBook2(scene, shelves) {
+    const book2Material = createEtchingMaterial('/book2/textures/Scene_-_Root_baseColor.png', {
+        tilingFactor: { value: 10.0 },
+        textureFactor: { value: 1.0 },
+        posCamVsUV: { value: 1.0 },
+        noiseScale: { value: 0.5 },
+        noiseFactor: { value: 0.0 },
+    }, etchingShaderInstanced);
+    // make two InstancedMeshes, one for the shelves, and one for the books, and add them to the scene with 4*2*5 = 40 instances of shelves, 5*14 = 70 instances of books per shelf, and 4*2*5*70 = 2800 books in total
+    // bookgeometry from the book2 scene 
+    // so first find the geometry of the book2 scene
+    
+    loadGLTFAsset('/book2/scene.gltf', book2Material, (book) => {
+        const book2Geometry = book.getObjectByName('Cube__0').geometry;
+        console.log('book2Geometry', book2Geometry);
+        const fakeMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
+        const book2InstancedMesh = new THREE.InstancedMesh(book2Geometry, book2Material, 28);// 2800
+        book2InstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        scene.add(book2InstancedMesh);
+        const dummy = new THREE.Object3D();
+        const scale = 0.009;
+        for(let i = 0; i < 28; i++) {
+            dummy.position.x = Math.random() * 1 - .5;
+            dummy.position.y = Math.random() * 1;
+            dummy.position.z = Math.random() * 1 - .5;
+            dummy.scale.x = dummy.scale.y = dummy.scale.z = scale;
+            dummy.rotation.z = Math.PI*.5;
+            dummy.updateMatrix();
+            book2InstancedMesh.setMatrixAt(i, dummy.matrix);
+            
+        }
+        console.log('book2InstancedMesh', book2InstancedMesh);
+        book2InstancedMesh.instanceMatrix.needsUpdate = true;
+
+    });
+}
+
+
 function setupShelves(scene) {
     const oldShelvesMaterial = createEtchingMaterial('/old_shelves/textures/Shelves_material_baseColor.png', {
         tilingFactor: { value: 90.0 },
@@ -125,7 +163,7 @@ function setupShelves(scene) {
         const bookScaleMult = 0.008;
         shelves.scale.set(bookScaleMult, bookScaleMult, bookScaleMult);
         shelves.position.set(0, 0, 0);
-        setupBooks(scene, shelves);
+        setupBooksInstancedOnlyBook2(scene, shelves);
     });
 }
 
