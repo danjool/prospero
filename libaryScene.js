@@ -95,10 +95,9 @@ function setupBooks(scene, shelves) {
         }
         shelves.add(wholeShelfOfBookes);
 
-        const dx = 1.0;
+        const dx = 1.0
         const dy = 2.0
         const dz = 2.0
-        const mult = 1.;
         for (let i = 0; i < 4; i++) { 
             for(let j = 0; j < 2; j++) { 
                 for(let k = 0; k < 5; k++) {
@@ -114,37 +113,39 @@ function setupBooks(scene, shelves) {
 
 function setupBooksInstancedOnlyBook2(scene, shelves) {
     const book2Material = createEtchingMaterial('/book2/textures/Scene_-_Root_baseColor.png', {
-        tilingFactor: { value: 10.0 },
+        tilingFactor: { value: 2.0 },
         textureFactor: { value: 1.0 },
         posCamVsUV: { value: 1.0 },
-        noiseScale: { value: 0.5 },
+        noiseScale: { value: 4000. },
         noiseFactor: { value: 0.0 },
     }, etchingShaderInstanced);
-    // make two InstancedMeshes, one for the shelves, and one for the books, and add them to the scene with 4*2*5 = 40 instances of shelves, 5*14 = 70 instances of books per shelf, and 4*2*5*70 = 2800 books in total
-    // bookgeometry from the book2 scene 
-    // so first find the geometry of the book2 scene
     
     loadGLTFAsset('/book2/scene.gltf', book2Material, (book) => {
         const book2Geometry = book.getObjectByName('Cube__0').geometry;
-        console.log('book2Geometry', book2Geometry);
-        const fakeMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
-        const book2InstancedMesh = new THREE.InstancedMesh(book2Geometry, book2Material, 28);// 2800
-        book2InstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        scene.add(book2InstancedMesh);
-        const dummy = new THREE.Object3D();
-        const scale = 0.009;
-        for(let i = 0; i < 28; i++) {
-            dummy.position.x = Math.random() * 1 - .5;
-            dummy.position.y = Math.random() * 1;
-            dummy.position.z = Math.random() * 1 - .5;
-            dummy.scale.x = dummy.scale.y = dummy.scale.z = scale;
-            dummy.rotation.z = Math.PI*.5;
-            dummy.updateMatrix();
-            book2InstancedMesh.setMatrixAt(i, dummy.matrix);
-            
+        console.log('book2Geometry', book2Geometry)
+        const fakeMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00})
+        const book2InstancedMesh = new THREE.InstancedMesh(book2Geometry, book2Material, 40)
+        book2InstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+        scene.add(book2InstancedMesh)
+        const dummy = new THREE.Object3D()
+
+        const dx = 1.0
+        const dy = 2.0
+        const dz = 2.0
+        const rotation = Math.PI/2.
+        for (let i = 0; i < 4; i++) { 
+            for(let j = 0; j < 2; j++) { 
+                for(let k = 0; k < 5; k++) {
+                    dummy.position.set(i * dx, j * dy, k * dz);
+                    dummy.scale.x = dummy.scale.y = dummy.scale.z = 0.009;
+                    dummy.rotation.z = rotation;
+                    dummy.updateMatrix();
+                    book2InstancedMesh.setMatrixAt(i*2*5 + j*5 + k, dummy.matrix);
+                }
+            }
         }
+
         console.log('book2InstancedMesh', book2InstancedMesh);
-        book2InstancedMesh.instanceMatrix.needsUpdate = true;
 
     });
 }
@@ -155,14 +156,36 @@ function setupShelves(scene) {
         tilingFactor: { value: 90.0 },
         textureFactor: { value: 1.0 },
         posCamVsUV: { value: 1.0 },
-        noiseScale: { value: 0.5 },
+        noiseScale: { value: 0.0 },
         noiseFactor: { value: 0.5 },
-    });
+    }, etchingShaderInstanced);
 
     loadGLTFAsset('/old_shelves/scene.gltf', oldShelvesMaterial, (shelves) => {
-        const bookScaleMult = 0.008;
-        shelves.scale.set(bookScaleMult, bookScaleMult, bookScaleMult);
-        shelves.position.set(0, 0, 0);
+        const shelvesGeometry = shelves.getObjectByName('Shelves1_Shelves_material_0').geometry;
+        console.log('shelvesGeometry', shelvesGeometry)
+        const shelvesInstancedMesh = new THREE.InstancedMesh(shelvesGeometry, oldShelvesMaterial, 40)
+        const dx = 1.0
+        const dy = 2.0
+        const dz = 2.0
+        const maxx = 4, maxy = 2, maxz = 5
+        const offsetX = -.5 * (maxx - 1) * dx
+        const offsetY = .45 * (maxy - 1) * dy
+        const offsetZ = -.5 * (maxz - 1) * dz
+        const dummy = new THREE.Object3D()
+        for (let i = 0; i < maxx; i++) { 
+            for(let j = 0; j < maxy; j++) { 
+                for(let k = 0; k < maxz; k++) {
+                    dummy.position.set( offsetX + i * dx, offsetY + j * dy, offsetZ + k * dz)
+                    dummy.scale.x = dummy.scale.y = dummy.scale.z = 0.009
+                    dummy.rotation.x = Math.PI * 3./2.
+                    dummy.rotation.y = Math.PI * 3./2.
+                    dummy.rotation.z = Math.PI * 1./2.
+                    dummy.updateMatrix();
+                    shelvesInstancedMesh.setMatrixAt(i*maxy*maxz + j*maxz + k, dummy.matrix);
+                }
+            }
+        }
+        scene.add(shelvesInstancedMesh);
         setupBooksInstancedOnlyBook2(scene, shelves);
     });
 }

@@ -332,15 +332,20 @@ let etchingShaderInstanced = {
         float normalizedAngle = (angle + 3.14159) / (2.0 * 3.14159);// Normalize the angle to [0, 1]
         float steppedAngle = floor(normalizedAngle * 4.) / 4.;// Step the angle to create the lines
         float rotation = steppedAngle * angleFactor + theta;
-        rotation = 0.;
 
         vec2 convertedUV = vec2( vUv.x, 1.- vUv.y); // because the uv data from the gltf is flipped, we need to convert it by flipping the x and y
+        // rotate convertedUV by theta
+        float c = cos(theta);
+        float s = sin(theta);
+        mat2 rotationMatrix = mat2(c, -s, s, c);
+        convertedUV = rotationMatrix * convertedUV;
+
 
         vec3 translating = vec3(0.0, 0.0, 0.0);
 
         // float n = noise(vPositionCamera.xy*100.0);
         float n = noise(convertedUV.xy*noiseScale);
-        rotation += n * noiseFactor;
+        // rotation += n * noiseFactor;
         // float pn = perlinNoise(vPositionCamera.xy, 10.0, 4, 10.5/vPositionCamera.z);
         // vec3 fpn = fractalPerlinNoise(vPositionCamera, 4.0, 1, 0.5, 0.1); 
 
@@ -348,7 +353,7 @@ let etchingShaderInstanced = {
         // blend between the two by using the posCamVsUV uniform
         vec3 driver = posCamVsUV * vPositionCamera + (1.0 - posCamVsUV) * vec3(convertedUV.xy, 0.);
 
-        vec3 transformed = blenderMappingTransform(driver, rotation, tilingFactor / (vPositionCamera.z), translating + driver);
+        vec3 transformed = blenderMappingTransform( vec3(0,0,0), rotation, tilingFactor / (vPositionCamera.z), translating + driver);
 
         float ramped = rampFromBlackToWhiteThenBlack( transformed.y) ;
         vec3 rampColor = vec3(ramped, ramped, ramped);

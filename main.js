@@ -72,7 +72,7 @@ function addEtchingMaterialFolderToGUI(gui, material) {
     etchingMaterialFolder.add(material.uniforms.rampFactor, 'value', 0, 2.).name('Ramp Factor')
     etchingMaterialFolder.add(material.uniforms.gamma, 'value', 0, 2.).name('Gamma Factor')
     etchingMaterialFolder.add(material.uniforms.angleFactor, 'value', 0, 2.).name('Angle Factor')
-    etchingMaterialFolder.add(material.uniforms.theta, 'value', 0, 6.28).name('Theta Factor')
+    etchingMaterialFolder.add(material.uniforms.theta, 'value', 0, Math.PI*2.0).name('Theta')
     etchingMaterialFolder.add(material.uniforms.angleClampDivisor, 'value', 0, 100.).name('Angle Clamp Divisor')
     etchingMaterialFolder.open();
 }
