@@ -48,6 +48,11 @@ let etchingShader = {
     uniform float angleClampDivisor;
     uniform float textureFactor;
 
+    uniform float burstRadius;
+    uniform float burstX;
+    uniform float burstY;
+    uniform float burstZ;
+
     varying vec2 vUv;
     varying vec3 vPositionCamera;
     varying float vLightIntensity;
@@ -127,7 +132,8 @@ let etchingShader = {
         float lighting = max(dot(vNormalObj, normalize(dirLight1)) * .1, 0.0);
         lighting +=      max(dot(vNormalObj, normalize(dirLight2)) * 0.2, 0.0);
 
-
+        float distFromBurst = distance(vPositionWorld, vec3(burstX, burstY, burstZ));
+        float burstIntensity = 1. - distFromBurst / burstRadius;
 
         float angle = atan2(vNormalCam.y, vNormalCam.x); // Angle between the normal and the x-axis
         float normalizedAngle = (angle + 3.14159) / (2.0 * 3.14159);// Normalize the angle to [0, 1]
@@ -160,7 +166,7 @@ let etchingShader = {
 
         //gl_FragColor = vec4(hash3(.000001*vPositionCamera.xyz), 1.0);
     
-        vec3 color = ( lightFactor * lighting ) - rampFactor * rampColor * ( 1. - textureFactor * textureIntensity );
+        vec3 color = ( lightFactor * lighting * (burstIntensity) ) - rampFactor * rampColor * ( 1. - textureFactor * textureIntensity );
 
         // uncomment these to visualize the different components of the shader
         // gl_FragColor = vec4( steppedAngle, steppedAngle, steppedAngle, 1.0);
@@ -174,6 +180,7 @@ let etchingShader = {
         // gl_FragColor = vec4(textureColor.rgb, 1.0);
         // gl_FragColor = vec4(vec3(n,n,n), 1.0);
         // gl_FragColor = vec4(fpn, 1.0);
+        // gl_FragColor = vec4(distFromBurst, distFromBurst, distFromBurst, 1.0);
         gl_FragColor = vec4(color.rgb, 1.0);
     }
     `,
@@ -194,6 +201,10 @@ let etchingShader = {
         angleFactor: { value: 0.0 },
         theta: { value: 0.0 },
         angleClampDivisor: { value: 10.0 },
+        burstRadius: { value: 4.5 },
+        burstX: { value: 0.0 },
+        burstY: { value: 0.0 },
+        burstZ: { value: 0.0 },
 
     }
 };
