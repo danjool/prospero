@@ -126,7 +126,7 @@ function setupBooksInstancedOnlyBook2(scene, shelves) {
         const fakeMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00})
         const book2InstancedMesh = new THREE.InstancedMesh(book2Geometry, book2Material, 40)
         book2InstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
-        scene.add(book2InstancedMesh)
+        // scene.add(book2InstancedMesh)
         const dummy = new THREE.Object3D()
 
         const dx = 1.0
@@ -146,30 +146,29 @@ function setupBooksInstancedOnlyBook2(scene, shelves) {
         }
 
         console.log('book2InstancedMesh', book2InstancedMesh);
-
     });
 }
 
-
 function setupShelves(scene) {
     const oldShelvesMaterial = createEtchingMaterial('/old_shelves/textures/Shelves_material_baseColor.png', {
-        tilingFactor: { value: 90.0 },
+        tilingFactor: { value: 120.0 },
         textureFactor: { value: 1.0 },
         posCamVsUV: { value: 1.0 },
-        noiseScale: { value: 0.0 },
+        noiseScale: { value: 1.0 },
         noiseFactor: { value: 0.5 },
     }, etchingShaderInstanced);
 
     loadGLTFAsset('/old_shelves/scene.gltf', oldShelvesMaterial, (shelves) => {
         const shelvesGeometry = shelves.getObjectByName('Shelves1_Shelves_material_0').geometry;
         console.log('shelvesGeometry', shelvesGeometry)
-        const shelvesInstancedMesh = new THREE.InstancedMesh(shelvesGeometry, oldShelvesMaterial, 40)
+        const maxx = 80, maxy = 4, maxz = 100
+        const numShelves = maxx * maxy * maxz;
+        const shelvesInstancedMesh = new THREE.InstancedMesh(shelvesGeometry, oldShelvesMaterial, numShelves)
         const dx = 1.0
         const dy = 2.0
-        const dz = 2.0
-        const maxx = 4, maxy = 2, maxz = 5
+        const dz = 1.0
         const offsetX = -.5 * (maxx - 1) * dx
-        const offsetY = .45 * (maxy - 1) * dy
+        const offsetY = .5 * (maxy - 1) * dy -1.
         const offsetZ = -.5 * (maxz - 1) * dz
         const dummy = new THREE.Object3D()
         for (let i = 0; i < maxx; i++) { 

@@ -353,7 +353,7 @@ let etchingShaderInstanced = {
         // blend between the two by using the posCamVsUV uniform
         vec3 driver = posCamVsUV * vPositionCamera + (1.0 - posCamVsUV) * vec3(convertedUV.xy, 0.);
 
-        vec3 transformed = blenderMappingTransform( vec3(0,0,0), rotation, tilingFactor / (vPositionCamera.z), translating + driver);
+        vec3 transformed = blenderMappingTransform( driver, rotation, tilingFactor / (vPositionCamera.z), translating);
 
         float ramped = rampFromBlackToWhiteThenBlack( transformed.y) ;
         vec3 rampColor = vec3(ramped, ramped, ramped);
