@@ -14,20 +14,21 @@ import { etchingShader } from '/etchingShader.js';
 import { FirstPersonControlsCustom } from '/FirstPersonControlsCustom.js';
 import { architecturalFeatures } from './architecturalFeatures';
 import { createLibraryScene } from './libaryScene';
+import { createAlephScene } from './alephScene';
 
 // THREE.LoadingManager
 
-let devScene = new THREE.Scene();
-let scene = devScene;
+// let devScene = new THREE.Scene();
+let scene = null;
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 let renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth, window.innerHeight)
 
 let controls = new FirstPersonControlsCustom(camera, renderer.domElement);
 controls.enabled = false;
 let composer = new EffectComposer( renderer );
-let renderPass =  new RenderPass( devScene, camera )
+let renderPass =  new RenderPass( scene, camera )
 composer.addPass( renderPass ); 
-let gtaoPass = new GTAOPass( devScene, camera, window.innerWidth, window.innerHeight);
+let gtaoPass = new GTAOPass( scene, camera, window.innerWidth, window.innerHeight);
 gtaoPass.blendIntensity = 1.0;
 gtaoPass.scale = 1.0;
 gtaoPass.output = GTAOPass.OUTPUT.Default;
@@ -36,9 +37,11 @@ composer.addPass( new OutputPass() );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-let libraryScene = createLibraryScene();    
-
-
+// let libraryScene = createLibraryScene();    
+let alephScene = createAlephScene();
+// find the first mesh in the scene, and gets its material
+let alephMat = alephScene.children[0].material;
+let allTheAlephMats = alephScene.children.map(child => child.material);
 
 function switchActiveScene(toScene) {
     scene = toScene;
@@ -46,7 +49,7 @@ function switchActiveScene(toScene) {
     gtaoPass.scene = toScene;
     toScene.add( camera );
 }
-switchActiveScene(libraryScene);
+switchActiveScene(alephScene);
 
 let etchingMaterialFolder = null; 
 function addEtchingMaterialFolderToGUI(gui, material) {
@@ -187,71 +190,71 @@ document.addEventListener('click', function(event) {
 
 
 // ------------------- Portal -------------------
-const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
-const portalPlane = new THREE.Plane( new THREE.Vector3( 0, 0, 1 ), 0.0 );
-let portalCamera = new THREE.PerspectiveCamera( 45, 1.0, 0.1, 500.0 );
-devScene.add( portalCamera );
-// let portalCameraHelper = new THREE.CameraHelper( portalCamera ); scene.add( portalCameraHelper );
-let bottomLeftCorner = new THREE.Vector3();
-let bottomRightCorner = new THREE.Vector3();
-let topLeftCorner = new THREE.Vector3();
-let reflectedPosition = new THREE.Vector3();
+// const planeGeo = new THREE.PlaneGeometry( 100.1, 100.1 );
+// const portalPlane = new THREE.Plane( new THREE.Vector3( 0, 0, 1 ), 0.0 );
+// let portalCamera = new THREE.PerspectiveCamera( 45, 1.0, 0.1, 500.0 );
+// devScene.add( portalCamera );
+// // let portalCameraHelper = new THREE.CameraHelper( portalCamera ); scene.add( portalCameraHelper );
+// let bottomLeftCorner = new THREE.Vector3();
+// let bottomRightCorner = new THREE.Vector3();
+// let topLeftCorner = new THREE.Vector3();
+// let reflectedPosition = new THREE.Vector3();
 
-const renderTargetResolution = 1024;
-let leftPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
-let leftPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: leftPortalTexture.texture } ) );
-let leftPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } ) );
-leftPortalFrame.scale.set( 1.03, 1.03, 1.03 );
-leftPortalFrame.position.z = -.1;
-leftPortal.add( leftPortalFrame );
-leftPortal.position.x = 2;
-leftPortal.position.y = 2;
-leftPortal.position.z = -3;
-leftPortal.rotateY( 0. );
-leftPortal.scale.set( 0.03, 0.03, 0.03 );
-devScene.add( leftPortal );
+// const renderTargetResolution = 1024;
+// let leftPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
+// let leftPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: leftPortalTexture.texture } ) );
+// let leftPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } ) );
+// leftPortalFrame.scale.set( 1.03, 1.03, 1.03 );
+// leftPortalFrame.position.z = -.1;
+// leftPortal.add( leftPortalFrame );
+// leftPortal.position.x = 2;
+// leftPortal.position.y = 2;
+// leftPortal.position.z = -3;
+// leftPortal.rotateY( 0. );
+// leftPortal.scale.set( 0.03, 0.03, 0.03 );
+// devScene.add( leftPortal );
 
-let rightPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
-let rightPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: rightPortalTexture.texture } ) );
-let rightPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } ) );
-rightPortalFrame.scale.set( 1.03, 1.03, 1.03 );
-rightPortalFrame.position.z = -.1;
-rightPortal.add( rightPortalFrame );
-rightPortal.position.x = -2;
-rightPortal.position.y = 2;
-rightPortal.position.z = -3;
-rightPortal.rotateY( 0. );
-rightPortal.scale.set( 0.03, 0.03, 0.03 );
-devScene.add( rightPortal );
+// let rightPortalTexture = new THREE.WebGLRenderTarget( renderTargetResolution, renderTargetResolution );
+// let rightPortal = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { map: rightPortalTexture.texture } ) );
+// let rightPortalFrame = new THREE.Mesh( planeGeo, new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } ) );
+// rightPortalFrame.scale.set( 1.03, 1.03, 1.03 );
+// rightPortalFrame.position.z = -.1;
+// rightPortal.add( rightPortalFrame );
+// rightPortal.position.x = -2;
+// rightPortal.position.y = 2;
+// rightPortal.position.z = -3;
+// rightPortal.rotateY( 0. );
+// rightPortal.scale.set( 0.03, 0.03, 0.03 );
+// devScene.add( rightPortal );
 
-function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
+// function renderPortal( thisPortalMesh, otherPortalMesh, thisPortalTexture ) {
 
-    leftPortalFrame.visible = false; rightPortalFrame.visible = false; // hide the portal frames from their own rendering
-    // set the portal camera position to be reflected about the portal plane
-    thisPortalMesh.worldToLocal( reflectedPosition.copy( camera.position ) );
-    reflectedPosition.x *= - 1.0; reflectedPosition.z *= - 1.0;
-    otherPortalMesh.localToWorld( reflectedPosition );
-    portalCamera.position.copy( reflectedPosition );
+//     leftPortalFrame.visible = false; rightPortalFrame.visible = false; // hide the portal frames from their own rendering
+//     // set the portal camera position to be reflected about the portal plane
+//     thisPortalMesh.worldToLocal( reflectedPosition.copy( camera.position ) );
+//     reflectedPosition.x *= - 1.0; reflectedPosition.z *= - 1.0;
+//     otherPortalMesh.localToWorld( reflectedPosition );
+//     portalCamera.position.copy( reflectedPosition );
 
-    // grab the corners of the other portal
-    // - note: the portal is viewed backwards; flip the left/right coordinates
-    otherPortalMesh.localToWorld( bottomLeftCorner.set( 50.05, - 50.05, 0.0 ) );
-    otherPortalMesh.localToWorld( bottomRightCorner.set( - 50.05, - 50.05, 0.0 ) );
-    otherPortalMesh.localToWorld( topLeftCorner.set( 50.05, 50.05, 0.0 ) );
-    // set the projection matrix to encompass the portal's frame
-    CameraUtils.frameCorners( portalCamera, bottomLeftCorner, bottomRightCorner, topLeftCorner, false );
+//     // grab the corners of the other portal
+//     // - note: the portal is viewed backwards; flip the left/right coordinates
+//     otherPortalMesh.localToWorld( bottomLeftCorner.set( 50.05, - 50.05, 0.0 ) );
+//     otherPortalMesh.localToWorld( bottomRightCorner.set( - 50.05, - 50.05, 0.0 ) );
+//     otherPortalMesh.localToWorld( topLeftCorner.set( 50.05, 50.05, 0.0 ) );
+//     // set the projection matrix to encompass the portal's frame
+//     CameraUtils.frameCorners( portalCamera, bottomLeftCorner, bottomRightCorner, topLeftCorner, false );
 
-    // render the portal
-    thisPortalTexture.texture.colorSpace = renderer.outputColorSpace;
-    renderer.setRenderTarget( thisPortalTexture );
-    renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
-    if ( renderer.autoClear === false ) renderer.clear();
-    thisPortalMesh.visible = false; // hide this portal from its own rendering
-    renderer.render( devScene, portalCamera );
-    thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
-    leftPortalFrame.visible = true; rightPortalFrame.visible = true; // unhide the portal frames
+//     // render the portal
+//     thisPortalTexture.texture.colorSpace = renderer.outputColorSpace;
+//     renderer.setRenderTarget( thisPortalTexture );
+//     renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+//     if ( renderer.autoClear === false ) renderer.clear();
+//     thisPortalMesh.visible = false; // hide this portal from its own rendering
+//     renderer.render( devScene, portalCamera );
+//     thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
+//     leftPortalFrame.visible = true; rightPortalFrame.visible = true; // unhide the portal frames
 
-}
+// }
 
 // ------------------- Assets -------------------
 const generatedBlankTexture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); // white texture
@@ -266,53 +269,54 @@ let sculptureMaterial = new THREE.ShaderMaterial({...etchingShaderDeepCopy,
     }
 });
 const loader = new GLTFLoader();
-loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
-    devScene.add(gltf.scene);
-    gltf.scene.traverse((child) => {
-        // if (child.isMesh) {child.material = new THREE.MeshBasicMaterial({ map: child.material.map });}
-        if (child.isObject3D) {child.position.set(0, 0, 0);}
-    });
-    const sculptureScale = 1.0;
-    gltf.scene.scale.set(sculptureScale, sculptureScale, sculptureScale);
-    gltf.scene.rotation.y = Math.PI / 2;
-    gltf.scene.traverse((child) => {
-        if (child.isMesh) {child.material = sculptureMaterial;}
-    });
-    handleResize();
-}, undefined, function (error) {console.error('error', error);});
+// loader.load('/spirit_of_life_sculpture/scene.gltf', async function (gltf) {
+//     devScene.add(gltf.scene);
+//     gltf.scene.traverse((child) => {
+//         // if (child.isMesh) {child.material = new THREE.MeshBasicMaterial({ map: child.material.map });}
+//         if (child.isObject3D) {child.position.set(0, 0, 0);}
+//     });
+//     const sculptureScale = 1.0;
+//     gltf.scene.scale.set(sculptureScale, sculptureScale, sculptureScale);
+//     gltf.scene.rotation.y = Math.PI / 2;
+//     gltf.scene.traverse((child) => {
+//         if (child.isMesh) {child.material = sculptureMaterial;}
+//     });
+//     handleResize();
+// }, undefined, function (error) {console.error('error', error);});
 
-const textureLessEtchingDeepCopy = JSON.parse(JSON.stringify(etchingShader));
-const textureLessEtchingMaterial = new THREE.ShaderMaterial(textureLessEtchingDeepCopy);
-textureLessEtchingMaterial.uniforms.texture1.value = generatedBlankTexture;
-textureLessEtchingMaterial.uniforms.tilingFactor.value = 160.0;
-textureLessEtchingMaterial.uniforms.posCamVsUV.value = 0.0;
-let cube = new THREE.Mesh(new THREE.BoxGeometry(), textureLessEtchingMaterial);
-const sphereMat = textureLessEtchingMaterial.clone();
-sphereMat.uniforms.tilingFactor.value = 100.0;
-sphereMat.uniforms.posCamVsUV.value = 1.0;
-let sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), sphereMat);
-let torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 32, 100), textureLessEtchingMaterial);
-let groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), textureLessEtchingMaterial);
-groundPlane.rotation.x = -Math.PI / 2;
-devScene.add(groundPlane);
+// const textureLessEtchingDeepCopy = JSON.parse(JSON.stringify(etchingShader));
+// const textureLessEtchingMaterial = new THREE.ShaderMaterial(textureLessEtchingDeepCopy);
+// textureLessEtchingMaterial.uniforms.texture1.value = generatedBlankTexture;
+// textureLessEtchingMaterial.uniforms.tilingFactor.value = 160.0;
+// textureLessEtchingMaterial.uniforms.posCamVsUV.value = 0.0;
+// let cube = new THREE.Mesh(new THREE.BoxGeometry(), textureLessEtchingMaterial);
+// const sphereMat = textureLessEtchingMaterial.clone();
+// sphereMat.uniforms.tilingFactor.value = 100.0;
+// sphereMat.uniforms.posCamVsUV.value = 1.0;
+// let sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), sphereMat);
+// let torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 32, 100), textureLessEtchingMaterial);
+// let groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), textureLessEtchingMaterial);
+// groundPlane.rotation.x = -Math.PI / 2;
+// devScene.add(groundPlane);
 
-cube.position.x = -3
-torus.position.x = 3
-sphere.position.y = 5
+// cube.position.x = -3
+// torus.position.x = 3
+// sphere.position.y = 5
 
-devScene.add(cube);
-devScene.add(sphere);
-devScene.add(torus);
+// devScene.add(cube);
+// devScene.add(sphere);
+// devScene.add(torus);
 
 camera.position.z = 0.8;
 camera.position.y = 1.0;
 camera.position.x = 0.1;
 
 let sunlight = new THREE.DirectionalLight(0xffffff, .3);
-devScene.add(sunlight);
-renderer.setClearColor(0x032288, 1);
+// devScene.add(sunlight);
+// renderer.setClearColor(0x032288, 1);
+renderer.setClearColor(0x000000, 1);
 
-architecturalFeatures(devScene);
+// architecturalFeatures(devScene);
 
 function handleResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -327,15 +331,18 @@ const stats = new Stats(); stats.dom.style.display = 'none'
 document.body.appendChild(stats.dom);
 function animate() {
     requestAnimationFrame(animate);
-    const rotSpeed = 0.005;
-    cube.rotation.x += rotSpeed;
-    cube.rotation.y += rotSpeed;
-    sphere.rotation.x += rotSpeed;
-    sphere.rotation.y += rotSpeed;
-    torus.rotation.x += rotSpeed;
-    torus.rotation.y += rotSpeed;
 
-    rightPortal.rotateY(0.01);
+    alephMat.uniforms.t.value += 0.01;
+    allTheAlephMats.forEach(mat => mat.uniforms.t.value += 0.1);
+
+    // cube.rotation.x += rotSpeed;
+    // cube.rotation.y += rotSpeed;
+    // sphere.rotation.x += rotSpeed;
+    // sphere.rotation.y += rotSpeed;
+    // torus.rotation.x += rotSpeed;
+    // torus.rotation.y += rotSpeed;
+
+    // rightPortal.rotateY(0.01);
 
     etchingShader.uniforms.time.value += 0.05;
     const delta = 0.1;
@@ -348,8 +355,8 @@ function animate() {
     renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
 
     // render the portal effect
-    renderPortal( leftPortal, rightPortal, leftPortalTexture );
-    renderPortal( rightPortal, leftPortal, rightPortalTexture );
+    // renderPortal( leftPortal, rightPortal, leftPortalTexture );
+    // renderPortal( rightPortal, leftPortal, rightPortalTexture );
 
     // restore the original rendering properties
     renderer.xr.enabled = currentXrEnabled;
