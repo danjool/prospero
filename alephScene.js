@@ -6,14 +6,14 @@ import * as dat from 'dat.gui';
 // shading like a line geometry, for now just let the shaders be very typical, for the line geometry that gets instanceded
 // pass a random color to each instance and a random 'offset'
 
-const pointsPerLine = 10000;
+const pointsPerLine = 40000;
 const numLines = 800;
 
 const alephLineMaterial = new THREE.ShaderMaterial({
     uniforms: {
-        color: { value: new THREE.Color(0xff00ff) },
-        colorsArray: { value: new Float32Array( numLines * 3 ) }, // will show up in the shader as a uniform float array
-        // uniform float colorsArray[20]; // where 20 is numLines * 3 bc each color is 3 floats
+        // random color
+        color: { value:  new THREE.Color( 0xff0000 )
+        },
         t: { value: 0 },
     },
     vertexShader: alephLineShader.vertexShader,
@@ -30,16 +30,21 @@ let point = new THREE.Vector3( 0, 0, 0);
 let direction = new THREE.Vector3(1, 1, 1);
 direction.normalize().multiplyScalar( 1.0 );
 
-const randomness = .0018;
+// points.push( point.x, point.y, point.z );
+// const randomness = .0018;
+
+var randomness = 2.5;
 points.push( point.x, point.y, point.z );
 
-for ( let i = 0; i < pointsPerLine; i ++ ) {
+for ( var i = 0; i < 40000; i ++ ) {
+
     direction.x += (Math.random() - 0.5) * randomness;
     direction.y += (Math.random() - 0.5) * randomness;
     direction.z += (Math.random() - 0.5) * randomness;
-    direction.normalize().multiplyScalar( .005 );
+    direction.normalize().multiplyScalar( 10 );
     point.add( direction );
     points.push( point.x, point.y, point.z );
+
 }
 const indices = new Uint16Array( pointsPerLine );
 for ( let i = 0; i < pointsPerLine; i ++ ) {
@@ -50,6 +55,14 @@ lineGeometry.setIndex( new THREE.BufferAttribute( indices, 1 ) );
 // which is a built-in variable that holds the index of the vertex being processed
 // out of the total number of vertices in the draw call,  gl_VerticesIn
 lineGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( points, 3 ) );
+// set the Color attribute
+const colors = new Float32Array( numLines * 3 );
+for ( let i = 0; i < numLines; i ++ ) {
+    const color = new THREE.Color();
+    color.setHSL( Math.random(), 1.0, i/numLines );
+    color.toArray( colors, i * 3 );
+}
+lineGeometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
 
 function createAlephScene() {
     const alephGUI = new dat.GUI();
@@ -61,15 +74,13 @@ function createAlephScene() {
 
     for ( let i = 0; i < numLines; i ++ ) {
         const randColor = new THREE.Color();
-        randColor.setHSL( Math.random(), 1.0, 0.5 );
+        randColor.setHSL( Math.random(), 1.0, 0.5 ).getHex();
         
         // const lineInstance = line.clone();
         const lineInstance = new THREE.Line( lineGeometry, 
             new THREE.ShaderMaterial({
                 uniforms: {
                     color: { value: randColor },
-                    colorsArray: { value: new Float32Array( numLines * 3 ) }, // will show up in the shader as a uniform float array
-                    // uniform float colorsArray[20]; // where 20 is numLines * 3 bc each color is 3 floats
                     t: { value: 0 },
                 },
                 vertexShader: alephLineShader.vertexShader,
@@ -80,20 +91,24 @@ function createAlephScene() {
             }) );
         lineInstance.position.x = 0
         lineInstance.position.y = 1.0
-        lineInstance.position.z = -12.5
+        lineInstance.position.z = -4.5
+        const s= 0.0001;
+        lineInstance.scale.set( s, s, s);
         lineInstance.rotation.x = Math.random() * Math.PI * 2.;
         lineInstance.rotation.y = Math.random() * Math.PI * 2.;
         lineInstance.rotation.z = Math.random() * Math.PI * 2.;
         // lineInstance.scale.x = lineInstance.scale.y = lineInstance.scale.z = Math.random() * 2;
         // set the lineInstance's shader mat's uniforms' color to a random color
-        // populate the colorsArray uniform with random colors
         const color = new THREE.Color();
-        color.setHSL( Math.random(), 1.0, i/numLines );
+        color.setHSL( Math.random()*.1, 1.0, i/numLines );
         lineInstance.material.uniforms.color.value = color; // this is just overwriting the color uniform of the original line material
 
+        // add scene helper
+        // scene.add( new THREE.ArrowHelper( new THREE.Vector3( 0, 1, 0 ), new THREE.Vector3( 0, 0, 0 ), 1, 0x00ff00 ) );
         scene.add( lineInstance );
     }
 
+    console.log('alephLineMaterial', alephLineMaterial, line)
     scene.add( line );
     // how to get access to the line material of the line instance outside of this func, so it can be updated?
     // i'm already returning scene, so i can't return the line material as well
@@ -102,7 +117,8 @@ function createAlephScene() {
     // return { scene, alephLineMaterial };
 
     // or after import and creation, alephScene.findObjectByName('lineMaterial').uniforms.t.value = 0.5;
-
+    const sceneScale = 10.0;
+    scene.scale.set(    sceneScale, sceneScale, sceneScale );
     return scene;
 }
 

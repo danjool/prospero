@@ -19,8 +19,11 @@ import { createAlephScene } from './alephScene';
 // THREE.LoadingManager
 
 // let devScene = new THREE.Scene();
+let now = Date.now();
+let lastTime = now; let delta=0;
+let time = 0;
 let scene = null;
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
 let renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth, window.innerHeight)
 
 let controls = new FirstPersonControlsCustom(camera, renderer.domElement);
@@ -53,6 +56,7 @@ switchActiveScene(alephScene);
 
 let etchingMaterialFolder = null; 
 function addEtchingMaterialFolderToGUI(gui, material) {
+    return // disable for now
     if(etchingMaterialFolder){
         gui.removeFolder(etchingMaterialFolder);
     }
@@ -178,9 +182,9 @@ document.addEventListener('click', function(event) {
                 if(!!transformControls){
                     devScene.remove(transformControls);
                 }
-                transformControls = new TransformControls(camera, composer.renderer.domElement);
-                transformControls.attach(intersects[0].object);
-                scene.add(transformControls);
+                // transformControls = new TransformControls(camera, composer.renderer.domElement);
+                // transformControls.attach(intersects[0].object);
+                // scene.add(transformControls);
                 
 
             }
@@ -323,7 +327,7 @@ function handleResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
-    controls.handleResize();
+    // controls.handleResize();
 } 
 window.addEventListener('resize', handleResize);
 
@@ -332,8 +336,13 @@ document.body.appendChild(stats.dom);
 function animate() {
     requestAnimationFrame(animate);
 
+    now = Date.now();
+    delta = now - lastTime
+    lastTime = now
+    time += delta* 0.0005
+
     alephMat.uniforms.t.value += 0.01;
-    allTheAlephMats.forEach(mat => mat.uniforms.t.value += 0.1);
+    allTheAlephMats.forEach(mat => mat.uniforms.t.value = time);
 
     // cube.rotation.x += rotSpeed;
     // cube.rotation.y += rotSpeed;
@@ -344,9 +353,8 @@ function animate() {
 
     // rightPortal.rotateY(0.01);
 
-    etchingShader.uniforms.time.value += 0.05;
-    const delta = 0.1;
-    controls.update(delta);
+    etchingShader.uniforms.time.value = time;
+    controls.update(.1);
 
     const currentRenderTarget = renderer.getRenderTarget();
     const currentXrEnabled = renderer.xr.enabled;

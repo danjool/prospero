@@ -15,7 +15,7 @@ class FirstPersonControlsCustom {
         this.domElement = domElement;
         // API
         this.enabled = true;
-        this.movementSpeed = .12;
+        this.movementSpeed = .03;
 		this.movementSpeedMultiplier = 40.0;
         this.lookSpeed = 0.05;
         this.lookVertical = true;
@@ -226,7 +226,7 @@ class FirstPersonControlsCustom {
 
 				const position = this.object.position;
 				targetPosition.setFromSphericalCoords( 1, phi, theta ).add( position ); // phi and theta end up driving the look direction, phi is up and down, theta is left and right
-				this.object.lookAt( targetPosition );
+				// this.object.lookAt( targetPosition );
 
 			};
 
